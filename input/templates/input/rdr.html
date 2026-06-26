@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+
+{% block title %}RDR - FileOpt Demo{% endblock %}
+
+{% block sidebar %}
+<h6 class="sidebar-heading">Input</h6>
+<ul class="nav flex-column">
+    {% for item in sidebar_menu %}
+    <li class="nav-item">
+        <a class="nav-link {% if current_sidebar_menu == item.key %}active{% endif %}"
+           href="{% url item.url_name %}">
+            <i class="bi {{ item.icon }} me-1"></i> {{ item.name }}
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h3 class="mb-1">RDR</h3>
+        <div class="text-muted small">
+            Reads <code>data/rdr_status.csv</code>.
+        </div>
+    </div>
+
+    <form method="get" class="ms-auto">
+        <button type="submit" name="interface" value="1" class="btn btn-primary">
+            <i class="bi bi-play-circle me-1"></i> Interface
+        </button>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small">Visible Rows</div>
+                <div class="fs-4 fw-bold">{% if loaded %}{{ row_count }}{% else %}-{% endif %}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <strong>RDR</strong>
+        <span class="text-muted small">
+            {% if loaded %}
+                Loaded from interface data
+            {% else %}
+                Header only view
+            {% endif %}
+        </span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm mb-0 align-middle">
+            <thead class="table-dark">
+                <tr>
+                    {% for header in table_headers %}
+                    <th>{{ header }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% if loaded %}
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ row.trade }}</td>
+                        <td>{{ row.pol }}</td>
+                        <td>{{ row.pod }}</td>
+                        <td class="text-end">{{ row.demand_value }}</td>
+                    </tr>
+                    {% endfor %}
+                {% else %}
+                    <tr>
+                        <td colspan="4" class="text-center text-muted py-5">
+                            Click <strong>Interface</strong> to load the CSV data.
+                        </td>
+                    </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

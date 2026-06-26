@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Inputs - Proforma Simulation Demo{% endblock %}
+
+{% block sidebar %}
+<h6 class="sidebar-heading">Inputs</h6>
+<ul class="nav flex-column">
+    {% for inst in inputs %}
+    <li class="nav-item">
+        <a class="nav-link text-white-50"
+           href="{% url 'input:input_detail_default' input_name=inst.name %}">
+            <i class="bi bi-folder2-open me-2"></i> {{ inst.name }}
+            <span class="badge bg-secondary float-end">{{ inst.files|length }}</span>
+        </a>
+    </li>
+    {% empty %}
+    <li class="nav-item">
+        <span class="nav-link text-white-50 small">No inputs found.</span>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+{% block content %}
+<h3 class="mb-4"><i class="bi bi-database"></i> Input List</h3>
+
+<div class="row">
+    {% for inst in inputs %}
+    <div class="col-md-4 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">
+                    <i class="bi bi-folder2-open text-primary"></i> {{ inst.name }}
+                </h5>
+                <p class="card-text text-muted small">
+                    {{ inst.files|length }} CSV file(s)
+                </p>
+                <ul class="list-unstyled small">
+                    {% for f in inst.files %}
+                    <li><i class="bi bi-file-earmark-spreadsheet text-success"></i> {{ f }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="card-footer bg-white">
+                <a href="{% url 'input:input_detail_default' input_name=inst.name %}"
+                   class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-eye"></i> View Data
+                </a>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            No inputs found. Place CSV files with <code>metadata.csv</code> in the <code>inputs/</code> folder.
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
+

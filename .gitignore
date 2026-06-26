@@ -1,0 +1,14 @@
+.env*
+db.sqlite3
+logs/
+media/
+staticfiles/
+__pycache__/
+*.pyc
+.vscode
+*.xml
+.idea/
+output/*
+!output/leader/
+!output/lower/
+!output/clean.py

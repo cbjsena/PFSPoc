@@ -32,56 +32,180 @@
     </form>
 </div>
 
-<div class="row g-3 mb-3">
+<!-- Trade 선택 UI 추가 -->
+{% if loaded %}
+<div class="row mb-3">
     <div class="col-md-4">
+        <div class="input-group">
+            <span class="input-group-text bg-white"><i class="bi bi-filter"></i></span>
+            <select class="form-select" id="trade-select">
+                <option value="ALL">All Trades</option>
+                <!-- JavaScript에서 옵션 동적 생성 -->
+            </select>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-3">
+    <!-- 기존 col-md-4에서 표를 넓게 쓰기 위해 col-12로 확장 -->
+    <div class="col-12">
         <div class="card shadow-sm">
-            <div class="card-body">
-                <div class="text-muted small">Visible Rows</div>
-                <div class="fs-4 fw-bold">{% if loaded %}{{ row_count }}{% else %}-{% endif %}</div>
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <strong>RDR Pivot View</strong>
+                <span class="text-muted small">
+                    {% if loaded %}
+                        Loaded from interface data
+                    {% else %}
+                        Header only view
+                    {% endif %}
+                </span>
+            </div>
+            <div class="card-body" id="pivot-container">
+                {% if not loaded %}
+                    <div class="text-center text-muted py-5">
+                        Click <strong>Interface</strong> to load the CSV data.
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
-<div class="card shadow-sm">
-    <div class="card-header bg-white d-flex justify-content-between align-items-center">
-        <strong>RDR</strong>
-        <span class="text-muted small">
-            {% if loaded %}
-                Loaded from interface data
-            {% else %}
-                Header only view
-            {% endif %}
-        </span>
-    </div>
-    <div class="table-responsive">
-        <table class="table table-bordered table-sm mb-0 align-middle">
-            <thead class="table-dark">
-                <tr>
-                    {% for header in table_headers %}
-                    <th>{{ header }}</th>
-                    {% endfor %}
-                </tr>
-            </thead>
-            <tbody>
-                {% if loaded %}
-                    {% for row in rows %}
-                    <tr>
-                        <td>{{ row.trade }}</td>
-                        <td>{{ row.pol }}</td>
-                        <td>{{ row.pod }}</td>
-                        <td class="text-end">{{ row.demand_value }}</td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="4" class="text-center text-muted py-5">
-                            Click <strong>Interface</strong> to load the CSV data.
-                        </td>
-                    </tr>
-                {% endif %}
-            </tbody>
-        </table>
-    </div>
-</div>
+{% if loaded %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Django 템플릿 변수를 통해 전달받은 rows 데이터를 JavaScript 배열로 변환
+        const rawData = [
+            {% for row in rows %}
+            {
+                trade: "{{ row.trade|escapejs }}",
+                pol: "{{ row.pol|escapejs }}",
+                pod: "{{ row.pod|escapejs }}",
+                demand: Number("{{ row.demand_value|default:0 }}")
+            }{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ];
+
+        const container = document.getElementById('pivot-container');
+        const tradeSelect = document.getElementById('trade-select');
+
+        // Trade 종류 추출 (중복 제거)
+        const trades = [...new Set(rawData.map(d => d.trade))].filter(Boolean);
+
+        // Select 옵션 동적 생성
+        trades.forEach(trade => {
+            const option = document.createElement('option');
+            option.value = trade;
+            option.textContent = trade;
+            tradeSelect.appendChild(option);
+        });
+
+        // 렌더링 함수
+        function renderTables(selectedTrade) {
+            container.innerHTML = ''; // 기존 내용 지우기
+
+            if (rawData.length === 0) {
+                 container.innerHTML = '<div class="text-center text-muted py-5">No data available.</div>';
+                 return;
+            }
+
+            let tradesToRender = trades;
+            if (selectedTrade !== 'ALL') {
+                tradesToRender = [selectedTrade];
+            }
+
+            if (tradesToRender.length === 0) {
+                container.innerHTML = '<div class="text-center text-muted py-5">No matching data.</div>';
+                return;
+            }
+
+            tradesToRender.forEach(trade => {
+                const tradeData = rawData.filter(d => d.trade === trade);
+                if(tradeData.length === 0) return;
+
+                // 현재 Trade에 속하는 POL, POD 목록 추출 (중복 제거)
+                const pols = [...new Set(tradeData.map(d => d.pol))];
+                const pods = [...new Set(tradeData.map(d => d.pod))];
+
+                // 현재 Trade의 총 Demand 합계 계산
+                const tradeTotal = tradeData.reduce((sum, d) => sum + d.demand, 0);
+
+                // Trade 타이틀 렌더링
+                const tradeTitle = document.createElement('h5');
+                tradeTitle.className = 'mt-4 mb-3 text-primary border-bottom pb-2';
+                tradeTitle.innerHTML = `<i class="bi bi-box-seam me-2"></i>Trade: <strong>${trade}</strong>`;
+                if (container.children.length === 0) {
+                    tradeTitle.classList.remove('mt-4'); // 첫 항목은 상단 여백 제거
+                }
+                container.appendChild(tradeTitle);
+
+                // 테이블 래퍼 렌더링
+                const tableDiv = document.createElement('div');
+                tableDiv.className = 'table-responsive mb-4';
+
+                const table = document.createElement('table');
+                table.className = 'table table-bordered table-sm align-middle text-center mb-0';
+
+                // 테이블 헤더 (Thead: 가로로 POD 나열)
+                const thead = document.createElement('thead');
+                thead.className = 'table-dark';
+                let headRow = `<tr><th class="text-start bg-secondary" style="min-width: 100px;">POL \\ POD</th>`;
+                pods.forEach(pod => {
+                    headRow += `<th>${pod}</th>`;
+                });
+                headRow += `</tr>`;
+                thead.innerHTML = headRow;
+                table.appendChild(thead);
+
+                // 테이블 바디 (Tbody: 세로 POL과 가로 POD 교차점에 Demand 맵핑)
+                const tbody = document.createElement('tbody');
+                pols.forEach(pol => {
+                    let tr = document.createElement('tr');
+                    let rowHtml = `<th class="text-start bg-light">${pol}</th>`;
+                    pods.forEach(pod => {
+                        const cellData = tradeData.find(d => d.pol === pol && d.pod === pod);
+                        // 데이터가 없으면 '-' 표시
+                        const val = cellData ? cellData.demand.toLocaleString() : '-';
+                        rowHtml += `<td>${val}</td>`;
+                    });
+                    tr.innerHTML = rowHtml;
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+
+                // 테이블 푸터 (Tfoot: 첫번째 POD 아래에 Trade 총합계 노출)
+                const tfoot = document.createElement('tfoot');
+                tfoot.className = 'table-light fw-bold';
+                let footRow = `<tr><td class="text-start">Trade Total</td>`;
+                pods.forEach((pod, index) => {
+                    if (index === 0) {
+                        // 첫 번째 POD 열에 전체 합계 기입
+                        footRow += `<td class="text-danger">${tradeTotal.toLocaleString()}</td>`;
+                    } else {
+                        // 나머지 열은 빈칸으로 처리
+                        footRow += `<td></td>`;
+                    }
+                });
+                footRow += `</tr>`;
+                tfoot.innerHTML = footRow;
+                table.appendChild(tfoot);
+
+                tableDiv.appendChild(table);
+                container.appendChild(tableDiv);
+            });
+        }
+
+        // 초기 렌더링 ('ALL')
+        renderTables('ALL');
+
+        // Select 박스 변경 이벤트 리스너
+        if(tradeSelect) {
+            tradeSelect.addEventListener('change', function(e) {
+                renderTables(e.target.value);
+            });
+        }
+    });
+</script>
+{% endif %}
 {% endblock %}

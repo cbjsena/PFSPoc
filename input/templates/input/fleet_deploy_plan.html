@@ -30,6 +30,10 @@
             <i class="bi bi-play-circle me-1"></i> Interface
         </button>
     </form>
+
+    {% url 'input:csv_download' filename='fleet_deploy_plan.csv' as download_url %}
+    {% url 'input:csv_upload' filename='fleet_deploy_plan.csv' as upload_url %}
+    {% include 'components/csv_buttons.html' with show_csv_buttons=True instance_name='input' current_file='fleet_deploy_plan.csv' download_url=download_url upload_url=upload_url %}
 </div>
 
 <div class="row g-3 mb-3">

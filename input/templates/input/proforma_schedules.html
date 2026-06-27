@@ -65,6 +65,10 @@
             <i class="bi bi-play-circle me-1"></i> Interface
         </button>
     </form>
+
+    {% url 'input:csv_download' filename='current_proforma_schedule.csv' as download_url %}
+    {% url 'input:csv_upload' filename='current_proforma_schedule.csv' as upload_url %}
+    {% include 'components/csv_buttons.html' with show_csv_buttons=True instance_name='input' current_file='current_proforma_schedule.csv' download_url=download_url upload_url=upload_url %}
 </div>
 
 <div class="row g-3 mb-3">

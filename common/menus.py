@@ -75,23 +75,35 @@ INPUT_SIDEBAR_MENU = [
 # Simulation 하위 메뉴 (좌측 사이드바)
 SIMULATION_SIDEBAR_MENU = [
     {
-        "key": "simulation_list",
-        "name": "Simulation List",
-        "url_name": "simulation:simulation_list",
+        "key": "port_creation",
+        "name": "Port Creation",
+        "url_name": "simulation:port_creation",
         "icon": "bi-list-ul",
     },
     {
-        "key": "simulation_create",
-        "name": "Create Simulation",
-        "url_name": "simulation:simulation_create",
-        "icon": "bi-plus-circle",
+        "key": "pfs_creation",
+        "name": "PFS Creation",
+        "url_name": "simulation:pfs_creation",
+        "icon": "bi-list-ul",
     },
     {
-        "key": "simulation_monitoring",
-        "name": "Monitoring",
-        "url_name": "simulation:simulation_monitoring",
-        "icon": "bi-broadcast-pin",
+        "key": "created_result",
+        "name": "Created Results",
+        "url_name": "simulation:created_result",
+        "icon": "bi-list-ul",
     },
+    {
+        "key": "berth_windows_adjustment",
+        "name": "Berth Windows Adjustment",
+        "url_name": "simulation:berth_windows_adjustment",
+        "icon": "bi-list-ul",
+    },
+    {
+        "key": "created_result_adjustment",
+        "name": "Created Result Adjustment",
+        "url_name": "simulation:created_result_adjustment",
+        "icon": "bi-list-ul",
+    }
 ]
 
 
@@ -107,6 +119,12 @@ RESULT_SIDEBAR_MENU = [
         "key": "result_cost_calculation",
         "name": "Cost Calculation",
         "url_name": "result:result_cost_calculation",
+        "icon": "bi-trophy",
+    },
+    {
+        "key": "result_detail",
+        "name": "Result Detail",
+        "url_name": "result:result_detail",
         "icon": "bi-trophy",
     },
 ]

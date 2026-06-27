@@ -3,18 +3,38 @@ import csv
 from pathlib import Path
 
 from django.conf import settings
-from django.http import Http404
+from django.http import Http404, FileResponse
 from django.shortcuts import redirect, render
 
 from common.views import menu_placeholder
 
 
-DATA_DIR = Path(settings.BASE_DIR) / "data"
-SCHEDULE_FILE = DATA_DIR / "current_proforma_schedule.csv"
-DETAIL_FILE = DATA_DIR / "current_proforma_schedule_detail.csv"
-BERTH_WINDOW_FILE = DATA_DIR / "berth_window_status.csv"
-RDR_FILE = DATA_DIR / "rdr_status.csv"
-FLEET_DEPLOY_PLAN_FILE = DATA_DIR / "fleet_deploy_plan.csv"
+def _data_dir():
+    """Return the current data directory based on settings.BASE_DIR.
+    Compute at runtime so tests can override settings.BASE_DIR during execution.
+    """
+    return Path(settings.BASE_DIR) / "data"
+
+
+# Helper to get specific files (computed at runtime)
+def _schedule_file():
+    return _data_dir() / "current_proforma_schedule.csv"
+
+
+def _detail_file():
+    return _data_dir() / "current_proforma_schedule_detail.csv"
+
+
+def _berth_window_file():
+    return _data_dir() / "berth_window_status.csv"
+
+
+def _rdr_file():
+    return _data_dir() / "rdr_status.csv"
+
+
+def _fleet_deploy_plan_file():
+    return _data_dir() / "fleet_deploy_plan.csv"
 
 TABLE_COLUMNS = [
     ("Schedule", 4),
@@ -81,8 +101,8 @@ def current_proforma_schedules(request):
     }
 
     if loaded:
-        schedule_rows = _read_csv_rows(SCHEDULE_FILE)
-        detail_rows = _read_csv_rows(DETAIL_FILE)
+        schedule_rows = _read_csv_rows(_schedule_file())
+        detail_rows = _read_csv_rows(_detail_file())
         display_rows = _build_display_rows(schedule_rows, detail_rows)
 
         context.update(
@@ -104,8 +124,8 @@ def proforma_schedules(request):
     total_details = 0
 
     if loaded:
-        schedule_rows = _read_csv_rows(SCHEDULE_FILE)
-        detail_rows = _read_csv_rows(DETAIL_FILE)
+        schedule_rows = _read_csv_rows(_schedule_file())
+        detail_rows = _read_csv_rows(_detail_file())
         detail_map = defaultdict(list)
         for row in detail_rows:
             detail_map[row["proforma_number"]].append(row)
@@ -154,7 +174,7 @@ def berth_window_status(request):
     }
 
     if loaded:
-        rows = _read_csv_rows(BERTH_WINDOW_FILE)
+        rows = _read_csv_rows(_berth_window_file())
         context.update(
             {
                 "rows": rows,
@@ -174,7 +194,7 @@ def fleet_deploy_plan(request):
     }
 
     if loaded:
-        rows = _read_csv_rows(FLEET_DEPLOY_PLAN_FILE)
+        rows = _read_csv_rows(_fleet_deploy_plan_file())
         context.update(
             {
                 "rows": rows,
@@ -194,7 +214,7 @@ def rdr(request):
     }
 
     if loaded:
-        rows = _read_csv_rows(RDR_FILE)
+        rows = _read_csv_rows(_rdr_file())
         context.update(
             {
                 "rows": rows,
@@ -320,3 +340,34 @@ def _calc_duration(detail):
         return ""
 
 
+
+def csv_download(request, filename):
+    """Download a CSV file from the data directory by filename."""
+    path = _data_dir() / filename
+    if not path.exists():
+        raise Http404(f"Missing data file: {filename}")
+    return FileResponse(open(path, "rb"), as_attachment=True, filename=filename, content_type="text/csv")
+
+
+def csv_upload(request, filename):
+    """Receive uploaded CSV and save to data directory under the given filename.
+
+    Simple behavior: saves file and redirects back to Referer or input list.
+    """
+    if request.method != "POST":
+        return redirect(request.META.get("HTTP_REFERER", "input:input_list"))
+
+    uploaded = request.FILES.get("csv_file")
+    if not uploaded:
+        # No file selected — redirect back (view/tests may assert messaging separately)
+        return redirect(request.META.get("HTTP_REFERER", "input:input_list"))
+
+    data_dir = _data_dir()
+    data_dir.mkdir(parents=True, exist_ok=True)
+    dest = data_dir / filename
+    # Write uploaded file in binary chunks
+    with dest.open("wb") as handle:
+        for chunk in uploaded.chunks():
+            handle.write(chunk)
+
+    return redirect(request.META.get("HTTP_REFERER", "input:input_list"))

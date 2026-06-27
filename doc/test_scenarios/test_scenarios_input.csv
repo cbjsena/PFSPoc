@@ -1,0 +1,17 @@
+ID,기능명,시나리오 설명,Given,When,Then
+IN_PF_DIS_001,Current Proforma - 비로딩,Current Proforma Schedules 화면 로딩 (interface 파라미터 미전달),data/current_proforma_schedule.csv 및 detail 파일 없음 또는 인터페이스 미전송,GET /input/current-proforma-schedules/,loaded=False, schedule_count=0, detail_count=0, display_rows 빈 상태 렌더링
+IN_PF_DIS_002,Current Proforma - 로딩,Current Proforma Schedules 화면 로딩 (interface=1),유효한 current_proforma_schedule.csv 및 current_proforma_schedule_detail.csv 존재,GET /input/current-proforma-schedules/?interface=1,loaded=True, schedule_count==CSV 행 수, detail_count==CSV detail 행 수, display_rows에 매핑된 행 존재
+IN_PF_DIS_003,Proforma Schedules - 포트 열수 일치,Proforma 스케줄의 ports 열 개수에 따라 테이블 컬럼 수가 계산되는지 검증,서로 다른 포트 수를 가진 schedule/detail CSV 준비,GET /input/proforma-schedules/?interface=1,각 schedule에 ports 포함, max_ports 값에 따라 total_columns == 5 + max_ports
+IN_PF_SVC_001,build_display_rows - 상세 없음 처리,_build_display_rows가 detail이 없는 schedule을 올바르게 처리하는지 검증,일부 schedule_rows에 대응하는 detail_rows 없음,함수 _build_display_rows(schedule_rows, detail_rows) 호출,detail 없는 schedule은 detail=None 행 생성, detail 있는 schedule은 각 detail별로 schedule 필드(첫 행만 값, 이후 None) 포함
+IN_PF_SVC_002,read_csv_rows - 파일 없음 처리,_read_csv_rows가 파일 누락 시 Http404를 발생시키는지 검증,대상 CSV 파일 미존재,_read_csv_rows(path) 호출,Http404 예외 발생 및 메시지에 파일명 포함
+IN_PF_SVC_003,format_time 포맷 처리,_format_time이 다양한 입력을 정상 변환하는지,빈 문자열/숫자('900')/시간('09:30:00') 입력,_format_time('900'), _format_time('09:30:00'), _format_time(''),반환값: '15:00', '09:30', ''
+IN_PF_SVC_004,parse_time_minutes - 입력 파싱,_parse_time_minutes가 정상수치와 잘못된 입력을 처리하는지 검사,입력값 '09:30','90','bad',함수 호출 결과,각각 570,90,NULL 반환
+IN_PF_SVC_005,calc_duration - 정상 및 주 경계 처리,_calc_duration이 ETB/ETD에 대한 시간차를 올바르게 계산하는지,detail 행에 etb_day/etb_time/etd_day/etd_time 값 존재,_calc_duration(detail) 호출,정상 케이스는 'Xh Ym' 또는 'Xh' 반환,비정상은 빈 문자열 반환
+IN_BWS_DIS_001,Berth Window - 파일 없음 처리,Berth Window Status 파일 누락 시 동작 확인,berth_window_status.csv 미존재,GET /input/berth-window-status/?interface=1,HTTP 404 응답(views의 _read_csv_rows에 의해)
+IN_BWS_DIS_002,Berth Window - 파일 존재 처리,Berth Window Status 파일이 존재할 때 rows와 row_count가 채워지는지 검증,berth_window_status.csv 존재,GET /input/berth-window-status/?interface=1,rows에 CSV 행이 채워지고 row_count==len(rows)
+IN_FDP_DIS_001,Fleet Deploy Plan - 파일 처리,Fleet Deploy Plan 화면 로딩 및 파일 미존재/존재 케이스 검증,fleet_deploy_plan.csv 존재/미존재,GET /input/fleet-deploy-plan/?interface=1,파일 존재 시 rows와 row_count 채워짐,파일 미존재 시 404 발생
+IN_RDR_DIS_001,RDR 화면 로딩,RDR 화면이 CSV로부터 행을 읽어 표시하는지 확인,rdr_status.csv 존재,GET /input/rdr/?interface=1,rows와 row_count가 채워짐,테이블 헤더는 RDR_TABLE_HEADERS와 일치
+IN_PF_DIS_006,PF 그리드 행 추가,그리드 하단에 행 추가 시 기본 시간 로직 적용,유효한 프로포르마 생성 화면,action=add_row 요청 (UI 액션 시뮬레이션),행 추가됨, 직전 행 기준 Default ETB/ETD 자동 채움
+IN_PF_DIS_015,엑셀 다운로드,화면 데이터 엑셀 다운로드가 동작하는지 확인,데이터 존재 및 export 액션,POST/GET proforma export action 요청,HTTP 200 및 spreadsheetml.sheet 파일 다운로드
+IN_CSV_DIS_001,CSV 다운로드 기본 검증,Scenario 기반 CSV 다운로드 동작 검증,시나리오 선택 및 데이터 존재,/proforma/csv_download/ 요청,HTTP 200 및 text/csv 파일 반환
+IN_CSV_DIS_004,CSV 업로드 저장 검증,CSV 업로드 후 데이터가 파싱되어 저장되는지 검증,업로드용 CSV 파일 준비,POST /proforma/upload/ (multipart form),그리드에 파싱된 데이터 표시 및 저장 동작 수행

@@ -10,4 +10,5 @@ urlpatterns = [
     path("proforma-schedules/", views.proforma_schedules, name="proforma_schedules"),
     path("berth-window-status/", views.berth_window_status, name="berth_window_status"),
     path("rdr/", views.rdr, name="rdr"),
+    path("fleet-deploy-plan/", views.fleet_deploy_plan, name="fleet_deploy_plan"),
 ]

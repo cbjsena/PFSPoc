@@ -39,6 +39,18 @@ TOP_MENU_ITEMS = [
 
 # Input 하위 메뉴 (좌측 사이드바)
 INPUT_SIDEBAR_MENU = [
+    {
+        "key": "rdr",
+        "name": "RDR",
+        "url_name": "input:rdr",
+        "icon": "bi-list-ul",
+    },
+    {
+        "key": "fleet_deploy_plan",
+        "name": "Fleet Deployment Plan",
+        "url_name": "input:fleet_deploy_plan",
+        "icon": "bi-list-ul",
+    },
     # {
     #     "key": "current_proforma_schedules",
     #     "name": "Current Proforma Schedules",
@@ -55,12 +67,6 @@ INPUT_SIDEBAR_MENU = [
         "key": "berth_window_status",
         "name": "Berth Window Status",
         "url_name": "input:berth_window_status",
-        "icon": "bi-list-ul",
-    },
-    {
-        "key": "rdr",
-        "name": "RDR",
-        "url_name": "input:rdr",
         "icon": "bi-list-ul",
     },
 ]

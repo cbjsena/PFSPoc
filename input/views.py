@@ -14,6 +14,7 @@ SCHEDULE_FILE = DATA_DIR / "current_proforma_schedule.csv"
 DETAIL_FILE = DATA_DIR / "current_proforma_schedule_detail.csv"
 BERTH_WINDOW_FILE = DATA_DIR / "berth_window_status.csv"
 RDR_FILE = DATA_DIR / "rdr_status.csv"
+FLEET_DEPLOY_PLAN_FILE = DATA_DIR / "fleet_deploy_plan.csv"
 
 TABLE_COLUMNS = [
     ("Schedule", 4),
@@ -53,6 +54,13 @@ RDR_TABLE_HEADERS = [
     "POL",
     "POD",
     "Demand Value",
+]
+
+FLEET_TABLE_HEADERS = [
+    "Trade",
+    "Lane",
+    "Capacity",
+    "Qty",
 ]
 
 
@@ -156,6 +164,25 @@ def berth_window_status(request):
 
     return render(request, "input/berth_window_status.html", context)
 
+def fleet_deploy_plan(request):
+    loaded = request.GET.get("interface") in {"1", "true", "True", "yes", "on"}
+    context = {
+        "loaded": loaded,
+        "table_headers": FLEET_TABLE_HEADERS,
+        "rows": [],
+        "row_count": 0,
+    }
+
+    if loaded:
+        rows = _read_csv_rows(FLEET_DEPLOY_PLAN_FILE)
+        context.update(
+            {
+                "rows": rows,
+                "row_count": len(rows),
+            }
+        )
+
+    return render(request, "input/fleet_deploy_plan.html", context)
 
 def rdr(request):
     loaded = request.GET.get("interface") in {"1", "true", "True", "yes", "on"}

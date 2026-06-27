@@ -89,6 +89,53 @@ def current_proforma_schedules(request):
     return render(request, "input/current_proforma_schedules.html", context)
 
 
+def proforma_schedules(request):
+    loaded = request.GET.get("interface") in {"1", "true", "True", "yes", "on"}
+    schedules = []
+    max_ports = 0
+    total_details = 0
+
+    if loaded:
+        schedule_rows = _read_csv_rows(SCHEDULE_FILE)
+        detail_rows = _read_csv_rows(DETAIL_FILE)
+        detail_map = defaultdict(list)
+        for row in detail_rows:
+            detail_map[row["proforma_number"]].append(row)
+
+        for schedule in schedule_rows:
+            details = detail_map.get(schedule["proforma_number"], [])
+            total_details += len(details)
+            for d in details:
+                d["duration"] = _calc_duration(d)
+                d["etb_time_display"] = _format_time(d.get("etb_time", ""))
+                d["etd_time_display"] = _format_time(d.get("etd_time", ""))
+            port_count = len(details)
+            schedules.append(
+                {
+                    "trade": schedule["trade"],
+                    "lane": schedule["lane"],
+                    "capacity": schedule["Capacity"],
+                    "qty": schedule["Qty"],
+                    "ports": details,
+                    "port_count": port_count,
+                }
+            )
+            max_ports = max(max_ports, port_count)
+
+        for s in schedules:
+            s["empty_cells"] = [None] * (max_ports - s["port_count"])
+
+    context = {
+        "loaded": loaded,
+        "schedules": schedules,
+        "max_ports": max_ports,
+        "total_columns": 5 + max_ports,
+        "schedule_count": len(schedules),
+        "detail_count": total_details,
+    }
+    return render(request, "input/proforma_schedules.html", context)
+
+
 def berth_window_status(request):
     loaded = request.GET.get("interface") in {"1", "true", "True", "yes", "on"}
     context = {
@@ -163,3 +210,86 @@ def _build_display_rows(schedule_rows, detail_rows):
             display_rows.append({"schedule": schedule, "detail": None})
 
     return display_rows
+
+
+DAY_ORDER = {"SUN": 0, "MON": 1, "TUE": 2, "WED": 3, "THU": 4, "FRI": 5, "SAT": 6}
+
+
+def _format_time(time_str):
+    """Format time string for display (strip seconds, handle edge cases)."""
+    if not time_str:
+        return ""
+    time_str = time_str.strip()
+    if not time_str:
+        return ""
+    if ":" not in time_str:
+        try:
+            val = int(time_str)
+            hours = val // 60
+            minutes = val % 60
+            return f"{hours:02d}:{minutes:02d}"
+        except ValueError:
+            return time_str
+    parts = time_str.split(":")
+    return f"{parts[0]}:{parts[1]}"
+
+
+def _parse_time_minutes(time_str):
+    """Parse time string to total minutes from midnight."""
+    if not time_str:
+        return None
+    time_str = time_str.strip()
+    if not time_str:
+        return None
+    if ":" not in time_str:
+        try:
+            return int(time_str)
+        except ValueError:
+            return None
+    parts = time_str.split(":")
+    try:
+        hours = int(parts[0])
+        minutes = int(parts[1]) if len(parts) > 1 else 0
+        return hours * 60 + minutes
+    except ValueError:
+        return None
+
+
+def _calc_duration(detail):
+    """Calculate duration between ETB and ETD as human-readable string."""
+    etb_day = detail.get("etb_day", "").strip().upper()
+    etb_time = detail.get("etb_time", "").strip()
+    etd_day = detail.get("etd_day", "").strip().upper()
+    etd_time = detail.get("etd_time", "").strip()
+
+    if not all([etb_day, etb_time, etd_day, etd_time]):
+        return ""
+
+    try:
+        etb_d = DAY_ORDER.get(etb_day, -1)
+        etd_d = DAY_ORDER.get(etd_day, -1)
+        if etb_d < 0 or etd_d < 0:
+            return ""
+
+        etb_minutes = _parse_time_minutes(etb_time)
+        etd_minutes = _parse_time_minutes(etd_time)
+        if etb_minutes is None or etd_minutes is None:
+            return ""
+
+        etb_total = etb_d * 24 * 60 + etb_minutes
+        etd_total = etd_d * 24 * 60 + etd_minutes
+
+        if etd_total <= etb_total:
+            etd_total += 7 * 24 * 60
+
+        diff = etd_total - etb_total
+        hours = diff // 60
+        minutes = diff % 60
+
+        if minutes > 0:
+            return f"{hours}h {minutes}m"
+        return f"{hours}h"
+    except (ValueError, IndexError, TypeError):
+        return ""
+
+

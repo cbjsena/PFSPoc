@@ -7,6 +7,7 @@ app_name = "input"
 urlpatterns = [
     path("", views.input_list, name="input_list"),
     path("current-proforma-schedules/", views.current_proforma_schedules, name="current_proforma_schedules"),
+    path("proforma-schedules/", views.proforma_schedules, name="proforma_schedules"),
     path("berth-window-status/", views.berth_window_status, name="berth_window_status"),
     path("rdr/", views.rdr, name="rdr"),
 ]

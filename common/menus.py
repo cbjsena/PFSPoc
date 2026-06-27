@@ -39,10 +39,16 @@ TOP_MENU_ITEMS = [
 
 # Input 하위 메뉴 (좌측 사이드바)
 INPUT_SIDEBAR_MENU = [
+    # {
+    #     "key": "current_proforma_schedules",
+    #     "name": "Current Proforma Schedules",
+    #     "url_name": "input:current_proforma_schedules",
+    #     "icon": "bi-list-ul",
+    # },
     {
-        "key": "current_proforma_schedules",
-        "name": "Current Proforma Schedules",
-        "url_name": "input:current_proforma_schedules",
+        "key": "proforma_schedules",
+        "name": "Proforma Schedules",
+        "url_name": "input:proforma_schedules",
         "icon": "bi-list-ul",
     },
     {
@@ -92,9 +98,9 @@ RESULT_SIDEBAR_MENU = [
         "icon": "bi-list-ul",
     },
     {
-        "key": "result_leaderboard",
-        "name": "Leaderboard",
-        "url_name": "result:result_leaderboard",
+        "key": "result_cost_calculation",
+        "name": "Cost Calculation",
+        "url_name": "result:result_cost_calculation",
         "icon": "bi-trophy",
     },
 ]

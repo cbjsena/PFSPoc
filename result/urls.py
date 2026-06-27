@@ -6,5 +6,5 @@ app_name = "result"
 
 urlpatterns = [
     path("", views.result_list, name="result_list"),
-    path("leaderboard/", views.result_leaderboard, name="result_leaderboard"),
+    path("cost-calculation/", views.result_cost_calculation, name="result_cost_calculation"),
 ]

@@ -10,7 +10,7 @@ def result_list(request):
     )
 
 
-def result_leaderboard(request):
+def result_cost_calculation(request):
     return menu_placeholder(
         request,
         "Leaderboard",

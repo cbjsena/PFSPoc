@@ -1,0 +1,257 @@
+{% extends "base.html" %}
+
+{% block title %}Proforma Schedules - Proforma Simulation Demo{% endblock %}
+
+{% block sidebar %}
+<h6 class="sidebar-heading">Input</h6>
+<ul class="nav flex-column">
+    {% for item in sidebar_menu %}
+    <li class="nav-item">
+        <a class="nav-link {% if current_sidebar_menu == item.key %}active{% endif %}"
+           href="{% url item.url_name %}">
+            <i class="bi {{ item.icon }} me-1"></i> {{ item.name }}
+        </a>
+    </li>
+    {% endfor %}
+</ul>
+{% endblock %}
+
+{% block content %}
+<style>
+    .pfs-table th, .pfs-table td {
+        white-space: nowrap;
+        font-size: 0.82rem;
+        padding: 0.3rem 0.5rem;
+    }
+    .pfs-table .schedule-cell {
+        background-color: #fff;
+        vertical-align: middle;
+    }
+    .pfs-table .label-cell {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #6c757d;
+        min-width: 70px;
+    }
+    .schedule-group {
+        border-top: 2px solid #0d6efd !important;
+    }
+    .schedule-group:first-child {
+        border-top: none !important;
+    }
+    .terminal-row td {
+        background-color: #f0f4ff;
+    }
+    .berth-row td {
+        background-color: #fffbf0;
+    }
+    .berth-row.duration-row td {
+        background-color: #f0fff4;
+        font-weight: 600;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h3 class="mb-1">Proforma Schedules</h3>
+        <div class="text-muted small">
+            Reads <code>data/current_proforma_schedule.csv</code> and
+            <code>data/current_proforma_schedule_detail.csv</code>.
+        </div>
+    </div>
+
+    <form method="get" class="ms-auto">
+        <button type="submit" name="interface" value="1" class="btn btn-primary">
+            <i class="bi bi-play-circle me-1"></i> Interface
+        </button>
+    </form>
+</div>
+
+<div class="row g-3 mb-3">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small">Schedules</div>
+                <div class="fs-4 fw-bold">{% if loaded %}{{ schedule_count }}{% else %}-{% endif %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <div class="text-muted small">Calling Ports</div>
+                <div class="fs-4 fw-bold">{% if loaded %}{{ detail_count }}{% else %}-{% endif %}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Checkbox toggles -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2 d-flex align-items-center gap-4">
+        <span class="fw-bold small text-muted me-2">Display Options:</span>
+        <div class="form-check form-check-inline mb-0">
+            <input class="form-check-input" type="checkbox" id="chkTerminal">
+            <label class="form-check-label fw-semibold" for="chkTerminal">
+                <i class="bi bi-building me-1"></i>Terminal
+            </label>
+        </div>
+        <div class="form-check form-check-inline mb-0">
+            <input class="form-check-input" type="checkbox" id="chkBerthWindow">
+            <label class="form-check-label fw-semibold" for="chkBerthWindow">
+                <i class="bi bi-clock me-1"></i>Berth Window
+            </label>
+        </div>
+    </div>
+</div>
+
+<!-- Data table -->
+<div class="card shadow-sm">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <strong>Proforma Schedules</strong>
+        <span class="text-muted small">
+            {% if loaded %}
+                Loaded from interface data
+            {% else %}
+                Header only view
+            {% endif %}
+        </span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm mb-0 align-middle pfs-table">
+            <thead class="table-dark">
+                <tr>
+                    <th class="text-center">Trade</th>
+                    <th class="text-center">Lane</th>
+                    <th class="text-center">Capacity</th>
+                    <th class="text-center">Qty</th>
+                    <th></th>
+                    {% if loaded %}
+                    <th class="text-center" colspan="{{ max_ports }}">Calling Ports</th>
+                    {% else %}
+                    <th class="text-center" colspan="10">Calling Ports</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            {% if loaded %}
+                {% for schedule in schedules %}
+                <tbody class="schedule-group">
+                    <!-- Port row (always visible) -->
+                    <tr class="port-row">
+                        <td class="schedule-cell text-center fw-bold" rowspan="1">{{ schedule.trade }}</td>
+                        <td class="schedule-cell text-center fw-bold" rowspan="1">{{ schedule.lane }}</td>
+                        <td class="schedule-cell text-end" rowspan="1">{{ schedule.capacity }}</td>
+                        <td class="schedule-cell text-end" rowspan="1">{{ schedule.qty }}</td>
+                        <td class="label-cell">Port</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center fw-bold">{{ port.port }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- Terminal row -->
+                    <tr class="terminal-row" style="display: none;">
+                        <td class="label-cell">Terminal</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.terminal }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- ETB Day row -->
+                    <tr class="berth-row" style="display: none;">
+                        <td class="label-cell">ETB Day</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.etb_day }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- ETB Time row -->
+                    <tr class="berth-row" style="display: none;">
+                        <td class="label-cell">ETB Time</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.etb_time_display }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- ETD Day row -->
+                    <tr class="berth-row" style="display: none;">
+                        <td class="label-cell">ETD Day</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.etd_day }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- ETD Time row -->
+                    <tr class="berth-row" style="display: none;">
+                        <td class="label-cell">ETD Time</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.etd_time_display }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- Duration row -->
+                    <tr class="berth-row duration-row" style="display: none;">
+                        <td class="label-cell">Duration</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.duration }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+                </tbody>
+                {% endfor %}
+            {% else %}
+                <tbody>
+                    <tr>
+                        <td colspan="15" class="text-center text-muted py-5">
+                            Click <strong>Interface</strong> to load the CSV data.
+                        </td>
+                    </tr>
+                </tbody>
+            {% endif %}
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    const chkTerminal = document.getElementById('chkTerminal');
+    const chkBerthWindow = document.getElementById('chkBerthWindow');
+
+    if (!chkTerminal || !chkBerthWindow) return;
+
+    function updateDisplay() {
+        const showTerminal = chkTerminal.checked;
+        const showBerth = chkBerthWindow.checked;
+
+        // Toggle terminal rows
+        document.querySelectorAll('.terminal-row').forEach(function(row) {
+            row.style.display = showTerminal ? '' : 'none';
+        });
+
+        // Toggle berth window rows
+        document.querySelectorAll('.berth-row').forEach(function(row) {
+            row.style.display = showBerth ? '' : 'none';
+        });
+
+        // Update rowspan for schedule cells
+        var rowspan = 1;
+        if (showTerminal) rowspan += 1;
+        if (showBerth) rowspan += 5;
+
+        document.querySelectorAll('.schedule-cell').forEach(function(cell) {
+            cell.rowSpan = rowspan;
+        });
+    }
+
+    chkTerminal.addEventListener('change', updateDisplay);
+    chkBerthWindow.addEventListener('change', updateDisplay);
+})();
+</script>
+{% endblock %}

@@ -109,6 +109,13 @@ class DefaultBerthWindowStatus(models.Model):
     def __str__(self):
         return f"{self.lane} - {self.port} - {self.berth}"
 
+    @property
+    def total_volume(self):
+        # 값이 없으면(None) 0으로 처리하여 합산합니다.
+        loading = self.loading_volume if self.loading_volume is not None else 0
+        discharging = self.discharging_volume if self.discharging_volume is not None else 0
+        return loading + discharging
+
 
 class DefaultCurrentProforma(models.Model):
     """Default Proforma 스케줄 메인 정보"""

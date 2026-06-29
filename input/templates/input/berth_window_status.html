@@ -18,12 +18,12 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-    <div>
-        <h3 class="mb-1">Berth Window Status</h3>
-        <div class="text-muted small">
-            Reads <code>data/berth_window_status.csv</code>.
-        </div>
-    </div>
+<!--    <div>-->
+<!--        <h3 class="mb-1">Berth Window Status</h3>-->
+<!--        <div class="text-muted small">-->
+<!--            Reads <code>data/berth_window_status.csv</code>.-->
+<!--        </div>-->
+<!--    </div>-->
 
     <form method="get" class="ms-auto">
         <button type="submit" name="interface" value="1" class="btn btn-primary">
@@ -71,18 +71,32 @@
                 {% if loaded %}
                     {% for row in rows %}
                     <tr>
-                        <td>{{ row.Lane }}</td>
-                        <td>{{ row.Country }}</td>
-                        <td>{{ row.Port }}</td>
-                        <td>{{ row.Berth }}</td>
-                        <td>{{ row.ETB_DAY }}</td>
-                        <td>{{ row.ETB_TIME }}</td>
-                        <td>{{ row.ETD_DAY }}</td>
-                        <td>{{ row.ETD_TIME }}</td>
-                        <td class="text-end">{{ row.LOADING_VOLUME }}</td>
-                        <td class="text-end">{{ row.Discharging_VOLUME }}</td>
-                        <td class="text-end">{{ row.Productivity }}</td>
-                        <td class="text-end">{{ row.Berthing }}</td>
+<!--                        파일에서 가져오기-->
+<!--                        <td>{{ row.Lane }}</td>-->
+<!--                        <td>{{ row.Country }}</td>-->
+<!--                        <td>{{ row.Port }}</td>-->
+<!--                        <td>{{ row.Berth }}</td>-->
+<!--                        <td>{{ row.ETB_DAY }}</td>-->
+<!--                        <td>{{ row.ETB_TIME }}</td>-->
+<!--                        <td>{{ row.ETD_DAY }}</td>-->
+<!--                        <td>{{ row.ETD_TIME }}</td>-->
+<!--                        <td class="text-end">{{ row.LOADING_VOLUME }}</td>-->
+<!--                        <td class="text-end">{{ row.Discharging_VOLUME }}</td>-->
+<!--                        <td class="text-end">{{ row.Productivity }}</td>-->
+<!--                        <td class="text-end">{{ row.Berthing }}</td>-->
+                        <td>{{ row.lane.lane_code|default_if_none:"" }}</td>
+                        <td>{{ row.country|default_if_none:"" }}</td>
+                        <td>{{ row.port|default_if_none:"" }}</td>
+                        <td>{{ row.berth|default_if_none:"" }}</td>
+                        <td>{{ row.etb_day|default_if_none:"" }}</td>
+                        <td>{{ row.etb_time|default_if_none:"" }}</td>
+                        <td>{{ row.etd_day|default_if_none:"" }}</td>
+                        <td>{{ row.etd_time|default_if_none:"" }}</td>
+                        <td class="text-end">{{ row.loading_volume|default_if_none:"" }}</td>
+                        <td class="text-end">{{ row.discharging_volume|default_if_none:"" }}</td>
+                        <td class="text-end fw-bold">{{ row.total_volume }}</td>
+                        <td class="text-end">{{ row.productivity|default_if_none:"" }}</td>
+                        <td class="text-end">{{ row.berthing|default_if_none:"" }}</td>
                     </tr>
                     {% endfor %}
                 {% else %}

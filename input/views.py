@@ -6,6 +6,8 @@ from django.conf import settings
 from django.http import Http404, FileResponse
 from django.shortcuts import redirect, render
 
+from input.models import DefaultBerthWindowStatus, DefaultRdrDemand
+
 
 def _data_dir():
     """Return the current data directory based on settings.BASE_DIR.
@@ -63,6 +65,7 @@ BERTH_TABLE_HEADERS = [
     "ETD Time",
     "Loading Volume",
     "Discharging Volume",
+    "Total",
     "Productivity",
     "Berthing",
 ]
@@ -144,35 +147,25 @@ def berth_window_status(request):
     }
 
     if loaded:
-        rows = _read_csv_rows(_berth_window_file())
+        # 지정된 파일에서 가져오기
+        # rows = _read_csv_rows(_berth_window_file())
+        # context.update(
+        #     {
+        #         "rows": rows,
+        #         "row_count": len(rows),
+        #     }
+        # )
+
+        # db에서 가져오기
+        rows = DefaultBerthWindowStatus.objects.all()
         context.update(
             {
                 "rows": rows,
-                "row_count": len(rows),
+                "row_count": rows.count(),
             }
         )
 
     return render(request, "input/berth_window_status.html", context)
-
-def fleet_deploy_plan(request):
-    loaded = request.GET.get("interface") in {"1", "true", "True", "yes", "on"}
-    context = {
-        "loaded": loaded,
-        "table_headers": FLEET_TABLE_HEADERS,
-        "rows": [],
-        "row_count": 0,
-    }
-
-    if loaded:
-        rows = _read_csv_rows(_fleet_deploy_plan_file())
-        context.update(
-            {
-                "rows": rows,
-                "row_count": len(rows),
-            }
-        )
-
-    return render(request, "input/fleet_deploy_plan.html", context)
 
 def rdr(request):
     loaded = request.GET.get("interface") in {"1", "true", "True", "yes", "on"}
@@ -184,11 +177,11 @@ def rdr(request):
     }
 
     if loaded:
-        rows = _read_csv_rows(_rdr_file())
+        rows = DefaultRdrDemand.objects.all()
         context.update(
             {
                 "rows": rows,
-                "row_count": len(rows),
+                "row_count": rows.count(),
             }
         )
 

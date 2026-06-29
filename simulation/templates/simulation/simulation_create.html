@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+
+{% block title %}Create Simulation - Proforma Simulation Demo{% endblock %}
+
+{% block sidebar %}
+<div class="sidebar-heading d-flex align-items-center">
+    <i class="bi bi-list"></i>
+    <span class="ms-2">Simulation</span>
+</div>
+<nav class="nav flex-column">
+    {% for menu_item in sidebar_menu %}
+    <a class="nav-link {% if current_sidebar_menu == menu_item.key %}active{% endif %}"
+       href="{% url menu_item.url_name %}">
+        <i class="bi {{ menu_item.icon }} me-2"></i>{{ menu_item.name }}
+    </a>
+    {% endfor %}
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <h3 class="mb-4"><i class="bi bi-plus-circle"></i> Create New Simulation</h3>
+
+        {% if error %}
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle"></i> {{ error }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        {% endif %}
+
+        <form method="post" class="needs-validation">
+            {% csrf_token %}
+
+            <!-- Proforma Selection -->
+            <div class="mb-4">
+                <label for="proformaSelect" class="form-label">
+                    <strong>Select Proforma</strong> <span class="text-danger">*</span>
+                </label>
+                <select class="form-select" id="proformaSelect" name="proforma_id" required onchange="updateProformaInfo()">
+                    <option value="">-- Select a Proforma --</option>
+                    {% for proforma in proformas %}
+                    <option value="{{ proforma.id }}" data-trade="{{ proforma.trade.trade_code }}" 
+                            data-trade-name="{{ proforma.trade.trade_name }}"
+                            data-lane="{{ proforma.lane.lane_code }}"
+                            data-lane-name="{{ proforma.lane.lane_name }}"
+                            data-capacity="{{ proforma.capacity }}"
+                            data-qty="{{ proforma.qty }}">
+                        [{{ proforma.trade.trade_code }}] {{ proforma.trade.trade_name }} - [{{ proforma.lane.lane_code }}] {{ proforma.lane.lane_name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                <div class="invalid-feedback">
+                    Please select a proforma.
+                </div>
+            </div>
+
+            <!-- Proforma Info Display -->
+            <div class="card mb-4" id="proformaInfo" style="display: none;">
+                <div class="card-header bg-light">
+                    <h6 class="mb-0"><i class="bi bi-info-circle"></i> Proforma Details</h6>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Trade Code</label>
+                            <p class="form-control-plaintext"><strong id="tradeCode">-</strong></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Trade Name</label>
+                            <p class="form-control-plaintext"><strong id="tradeName">-</strong></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Lane Code</label>
+                            <p class="form-control-plaintext"><strong id="laneCode">-</strong></p>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Lane Name</label>
+                            <p class="form-control-plaintext"><strong id="laneName">-</strong></p>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-0">
+                            <label class="form-label text-muted small">Capacity</label>
+                            <p class="form-control-plaintext"><strong id="capacity">-</strong></p>
+                        </div>
+                        <div class="col-md-6 mb-0">
+                            <label class="form-label text-muted small">Qty</label>
+                            <p class="form-control-plaintext"><strong id="qty">-</strong></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-4">
+                <label for="description" class="form-label">
+                    <strong>Description (Optional)</strong>
+                </label>
+                <textarea class="form-control" id="description" name="description" rows="4" 
+                          placeholder="Enter simulation description or notes..."></textarea>
+            </div>
+
+            <!-- Buttons -->
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-play-circle"></i> Create & Run Simulation
+                </button>
+                <a href="{% url 'simulation:simulation_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancel
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Right Sidebar Info -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h6 class="mb-0"><i class="bi bi-question-circle"></i> About Simulation Creation</h6>
+            </div>
+            <div class="card-body small text-muted">
+                <p>
+                    <strong>Simulation Creation</strong> allows you to run new simulations based on existing 
+                    <strong>Proforma</strong> schedules.
+                </p>
+                <ul class="mb-3">
+                    <li>Select a proforma with trade and lane information</li>
+                    <li>The simulation will use capacity and quantity from the selected proforma</li>
+                    <li>Add an optional description for reference</li>
+                    <li>The simulation will be executed in the background</li>
+                </ul>
+                <p class="mb-0">
+                    <i class="bi bi-info-circle"></i> 
+                    <small>Proforma details are displayed only. Port-specific information (berth windows) will be retrieved during simulation execution.</small>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function updateProformaInfo() {
+    const select = document.getElementById('proformaSelect');
+    const infoCard = document.getElementById('proformaInfo');
+    const selectedOption = select.options[select.selectedIndex];
+
+    if (select.value) {
+        document.getElementById('tradeCode').textContent = selectedOption.dataset.trade || '-';
+        document.getElementById('tradeName').textContent = selectedOption.dataset.tradeName || '-';
+        document.getElementById('laneCode').textContent = selectedOption.dataset.lane || '-';
+        document.getElementById('laneName').textContent = selectedOption.dataset.laneName || '-';
+        document.getElementById('capacity').textContent = selectedOption.dataset.capacity || '-';
+        document.getElementById('qty').textContent = selectedOption.dataset.qty || '-';
+        infoCard.style.display = 'block';
+    } else {
+        infoCard.style.display = 'none';
+    }
+}
+
+// Form validation
+(function () {
+    'use strict';
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function (event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        }
+        form.classList.add('was-validated');
+    }, false);
+})();
+</script>
+{% endblock %}

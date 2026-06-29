@@ -63,9 +63,15 @@ INPUT_SIDEBAR_MENU = [
 # Simulation 하위 메뉴 (좌측 사이드바)
 SIMULATION_SIDEBAR_MENU = [
     {
-        "key": "port_creation",
-        "name": "Port Creation",
-        "url_name": "simulation:port_creation",
+        "key": "simulation_list",
+        "name": "Simulation List",
+        "url_name": "simulation:simulation_list",
+        "icon": "bi-list-ul",
+    },
+    {
+        "key": "simulation_creation",
+        "name": "Simulation Creation",
+        "url_name": "simulation:simulation_creation",
         "icon": "bi-list-ul",
     },
     {

@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Simulation List - Proforma Simulation Demo{% endblock %}
+
+{% block sidebar %}
+<div class="sidebar-heading d-flex align-items-center">
+    <i class="bi bi-list"></i>
+    <span class="ms-2">Simulation</span>
+</div>
+<nav class="nav flex-column">
+    {% for menu_item in sidebar_menu %}
+    <a class="nav-link {% if current_sidebar_menu == menu_item.key %}active{% endif %}"
+       href="{% url menu_item.url_name %}">
+        <i class="bi {{ menu_item.icon }} me-2"></i>{{ menu_item.name }}
+    </a>
+    {% endfor %}
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h3><i class="bi bi-play-circle"></i> Simulation List</h3>
+    <a href="{% url 'simulation:simulation_creation' %}" class="btn btn-primary">
+        <i class="bi bi-plus-circle"></i> New Simulation
+    </a>
+</div>
+
+<!-- Filter by User -->
+{% if all_users %}
+<div class="mb-4">
+    <form method="get" class="d-flex gap-2">
+        <select name="created_by_id" class="form-select w-auto" onchange="this.form.submit()">
+            <option value="">All Users</option>
+            {% for user in all_users %}
+            <option value="{{ user.id }}" {% if selected_created_by_id == user.id|stringformat:"s" %}selected{% endif %}>
+                {{ user.username }}
+            </option>
+            {% endfor %}
+        </select>
+    </form>
+</div>
+{% endif %}
+
+{% if simulations %}
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>ID</th>
+                <th>Status</th>
+                <th>Progress</th>
+                <th>Created By</th>
+                <th>Created At</th>
+                <th>Execution Time</th>
+                <th>Objective Value</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for sim in simulations %}
+            <tr>
+                <td>
+                    <strong>#{{ sim.id }}</strong>
+                </td>
+                <td>
+                    {% if sim.status == "PENDING" %}
+                        <span class="badge bg-warning"><i class="bi bi-hourglass-split"></i> Pending</span>
+                    {% elif sim.status == "RUNNING" %}
+                        <span class="badge bg-info"><i class="bi bi-play-circle"></i> Running</span>
+                    {% elif sim.status == "SUCCESS" %}
+                        <span class="badge bg-success"><i class="bi bi-check-circle"></i> Success</span>
+                    {% elif sim.status == "FAILED" %}
+                        <span class="badge bg-danger"><i class="bi bi-x-circle"></i> Failed</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ sim.status }}</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if sim.is_processing %}
+                    <div class="progress" style="height: 20px; width: 100px;">
+                        <div class="progress-bar bg-info" role="progressbar" style="width: {{ sim.progress }}%">
+                            {{ sim.progress }}%
+                        </div>
+                    </div>
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>{{ sim.created_by.username|default:"-" }}</td>
+                <td>{{ sim.created_at|date:"Y-m-d H:i:s" }}</td>
+                <td>{% if sim.execution_time %}{{ sim.execution_time|floatformat:2 }}s{% else %}-{% endif %}</td>
+                <td>{% if sim.objective_value %}{{ sim.objective_value|floatformat:4 }}{% else %}-{% endif %}</td>
+                <td>
+                    <a href="{% url 'simulation:simulation_monitoring' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i> View
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="alert alert-info">
+    <i class="bi bi-info-circle"></i>
+    No simulations found.
+</div>
+{% endif %}
+{% endblock %}

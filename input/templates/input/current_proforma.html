@@ -55,8 +55,8 @@
     <div>
         <h3 class="mb-1">Proforma Schedules</h3>
         <div class="text-muted small">
-            Reads <code>data/current_proforma_schedule.csv</code> and
-            <code>data/current_proforma_schedule_detail.csv</code>.
+            Reads <code>data/current_proforma.csv</code> and
+            <code>data/current_proforma_detail.csv</code>.
         </div>
     </div>
 
@@ -66,9 +66,9 @@
         </button>
     </form>
 
-    {% url 'input:csv_download' filename='current_proforma_schedule.csv' as download_url %}
-    {% url 'input:csv_upload' filename='current_proforma_schedule.csv' as upload_url %}
-    {% include 'components/csv_buttons.html' with show_csv_buttons=True instance_name='input' current_file='current_proforma_schedule.csv' download_url=download_url upload_url=upload_url %}
+    {% url 'input:csv_download' filename='current_proforma.csv' as download_url %}
+    {% url 'input:csv_upload' filename='current_proforma.csv' as upload_url %}
+    {% include 'components/csv_buttons.html' with show_csv_buttons=True instance_name='input' current_file='current_proforma.csv' download_url=download_url upload_url=upload_url %}
 </div>
 
 <div class="row g-3 mb-3">

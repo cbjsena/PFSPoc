@@ -21,7 +21,7 @@
     <div>
         <h3 class="mb-1">RDR</h3>
         <div class="text-muted small">
-            Reads <code>data/rdr_status.csv</code>.
+            Reads <code>data/rdr_demand.csv</code>.
         </div>
     </div>
 
@@ -31,9 +31,9 @@
         </button>
     </form>
 
-    {% url 'input:csv_download' filename='rdr_status.csv' as download_url %}
-    {% url 'input:csv_upload' filename='rdr_status.csv' as upload_url %}
-    {% include 'components/csv_buttons.html' with show_csv_buttons=True instance_name='input' current_file='rdr_status.csv' download_url=download_url upload_url=upload_url %}
+    {% url 'input:csv_download' filename='rdr_demand.csv' as download_url %}
+    {% url 'input:csv_upload' filename='rdr_demand.csv' as upload_url %}
+    {% include 'components/csv_buttons.html' with show_csv_buttons=True instance_name='input' current_file='rdr_demand.csv' download_url=download_url upload_url=upload_url %}
 </div>
 
 <!-- Trade 선택 UI 추가 -->

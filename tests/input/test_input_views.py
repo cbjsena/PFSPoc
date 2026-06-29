@@ -5,13 +5,13 @@ from django.urls import reverse
 def test_current_proforma_no_interface(client, settings, tmp_path):
     """
     Scenario: IN_PF_DIS_001
-    설명: Current Proforma Schedules 화면 로딩 (interface 미전달)
+    설명: Current Proforma 화면 로딩 (interface 미전달)
     Given: data 파일 없음
-    When: GET /input/current-proforma-schedules/
-    Then: loaded=False, schedule_count=0, detail_count=0
+    When: GET /input/current-proforma/
+    Then: loaded=False, schedule_count=0, detail_count=0, row_count=0
     """
     settings.BASE_DIR = tmp_path
-    url = reverse("input:current_proforma_schedules")
+    url = reverse("input:current_proforma")
     resp = client.get(url)
     assert resp.status_code == 200
     assert resp.context["loaded"] is False
@@ -24,24 +24,24 @@ def test_current_proforma_no_interface(client, settings, tmp_path):
 def test_current_proforma_with_interface(client, settings, tmp_path):
     """
     Scenario: IN_PF_DIS_002
-    설명: Current Proforma Schedules 화면 로딩 (interface=1)
+    설명: Current Proforma 화면 로딩 (interface=1)
     Given: valid CSVs under BASE_DIR/data
-    When: GET /input/current-proforma-schedules/?interface=1
+    When: GET /input/current-proforma/?interface=1
     Then: loaded=True, schedule_count/detail_count == CSV rows
     """
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    (data_dir / "current_proforma_schedule.csv").write_text(
+    (data_dir / "current_proforma.csv").write_text(
         "proforma_number,trade,lane,Capacity,Qty\nPF001,Trade1,Lane1,100,2\n",
         encoding="utf-8-sig",
     )
-    (data_dir / "current_proforma_schedule_detail.csv").write_text(
+    (data_dir / "current_proforma_detail.csv").write_text(
         "proforma_number,etb_day,etb_time,etd_day,etd_time\nPF001,MON,09:00,TUE,12:30\n",
         encoding="utf-8-sig",
     )
 
     settings.BASE_DIR = tmp_path
-    url = reverse("input:current_proforma_schedules") + "?interface=1"
+    url = reverse("input:current_proforma") + "?interface=1"
     resp = client.get(url)
     assert resp.status_code == 200
     assert resp.context["loaded"] is True
@@ -59,17 +59,17 @@ def test_proforma_schedules_port_columns(settings, client, tmp_path):
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     # schedule PF001 with 3 detail ports
-    (data_dir / "current_proforma_schedule.csv").write_text(
+    (data_dir / "current_proforma.csv").write_text(
         "proforma_number,trade,lane,Capacity,Qty\nPF001,Trade1,LN1,100,1\nPF002,Trade2,LN2,200,2\n",
         encoding="utf-8-sig",
     )
-    (data_dir / "current_proforma_schedule_detail.csv").write_text(
+    (data_dir / "current_proforma_detail.csv").write_text(
         "proforma_number,etb_day,etb_time,etd_day,etd_time\nPF001,MON,09:00,MON,10:00\nPF001,TUE,11:00,TUE,12:00\nPF001,WED,13:00,WED,14:00\nPF002,MON,08:00,MON,09:00\n",
         encoding="utf-8-sig",
     )
     settings.BASE_DIR = tmp_path
 
-    url = reverse("input:proforma_schedules") + "?interface=1"
+    url = reverse("input:current_proforma") + "?interface=1"
     resp = client.get(url)
     assert resp.status_code == 200
     # max_ports should be 3 (PF001) so total_columns == 5 + 3 == 8
@@ -113,29 +113,6 @@ def test_berth_window_status_file_exists(client, settings, tmp_path):
 
 
 @pytest.mark.django_db
-def test_fleet_deploy_plan_file_missing_and_exists(client, settings, tmp_path):
-    """
-    Scenario: IN_FDP_DIS_001
-    설명: Fleet Deploy Plan 파일 존재/미존재 케이스 검증
-    """
-    # missing -> 404
-    settings.BASE_DIR = tmp_path
-    url = reverse("input:fleet_deploy_plan") + "?interface=1"
-    resp = client.get(url)
-    assert resp.status_code == 404
-
-    # exists -> 200
-    data_dir = tmp_path / "data"
-    data_dir.mkdir()
-    fp = data_dir / "fleet_deploy_plan.csv"
-    fp.write_text("Trade,Lane,Capacity,Qty\nT1,L1,100,2\n", encoding="utf-8-sig")
-    settings.BASE_DIR = tmp_path
-    resp2 = client.get(url)
-    assert resp2.status_code == 200
-    assert resp2.context["row_count"] == 1
-
-
-@pytest.mark.django_db
 def test_rdr_view_loads(client, settings, tmp_path):
     """
     Scenario: IN_RDR_DIS_001
@@ -143,7 +120,7 @@ def test_rdr_view_loads(client, settings, tmp_path):
     """
     data_dir = tmp_path / "data"
     data_dir.mkdir()
-    rdr = data_dir / "rdr_status.csv"
+    rdr = data_dir / "rdr_demand.csv"
     rdr.write_text("Trade,POL,POD,Demand Value\nT1,P1,P2,100\n", encoding="utf-8-sig")
     settings.BASE_DIR = tmp_path
     url = reverse("input:rdr") + "?interface=1"

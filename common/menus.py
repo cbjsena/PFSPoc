@@ -46,21 +46,9 @@ INPUT_SIDEBAR_MENU = [
         "icon": "bi-list-ul",
     },
     {
-        "key": "fleet_deploy_plan",
-        "name": "Fleet Deployment Plan",
-        "url_name": "input:fleet_deploy_plan",
-        "icon": "bi-list-ul",
-    },
-    # {
-    #     "key": "current_proforma_schedules",
-    #     "name": "Current Proforma Schedules",
-    #     "url_name": "input:current_proforma_schedules",
-    #     "icon": "bi-list-ul",
-    # },
-    {
-        "key": "proforma_schedules",
-        "name": "Proforma Schedules",
-        "url_name": "input:proforma_schedules",
+        "key": "current_proforma",
+        "name": "Current Proforma",
+        "url_name": "input:current_proforma",
         "icon": "bi-list-ul",
     },
     {

@@ -9,6 +9,17 @@
 """
 
 # ==========================================
+# 0. 데이터 초기화 및 로그 (CLI / Data Init)
+# ==========================================
+DIR_NOT_FOUND = "Directory not found: {path}"
+FILE_NOT_FOUND = "[SKIP] {table}: File not found ({file})"
+START_LOADING = "[START] Loading {table}..."
+DONE_LOADING = "[DONE] {table}: {count} rows loaded."
+EMPTY_CSV = "[EMPTY] {table}: CSV has no data."
+LOAD_FAIL = "[FAIL] {table}: {error}"
+ROW_ERROR = "[WARN] Row skipped in {table}: {error}"
+
+# ==========================================
 # 1. 공통 및 인증 (General & Auth)
 # ==========================================
 PERMISSION_DENIED = "You do not have permission to perform this action."

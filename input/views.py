@@ -6,8 +6,6 @@ from django.conf import settings
 from django.http import Http404, FileResponse
 from django.shortcuts import redirect, render
 
-from common.views import menu_placeholder
-
 
 def _data_dir():
     """Return the current data directory based on settings.BASE_DIR.
@@ -18,11 +16,11 @@ def _data_dir():
 
 # Helper to get specific files (computed at runtime)
 def _schedule_file():
-    return _data_dir() / "current_proforma_schedule.csv"
+    return _data_dir() / "current_proforma.csv"
 
 
 def _detail_file():
-    return _data_dir() / "current_proforma_schedule_detail.csv"
+    return _data_dir() / "current_proforma_detail.csv"
 
 
 def _berth_window_file():
@@ -30,7 +28,7 @@ def _berth_window_file():
 
 
 def _rdr_file():
-    return _data_dir() / "rdr_status.csv"
+    return _data_dir() / "rdr_demand.csv"
 
 
 def _fleet_deploy_plan_file():
@@ -85,39 +83,10 @@ FLEET_TABLE_HEADERS = [
 
 
 def input_list(request):
-    return redirect("input:current_proforma_schedules")
+    return redirect("input:current_proforma")
 
 
-def current_proforma_schedules(request):
-    loaded = request.GET.get("interface") in {"1", "true", "True", "yes", "on"}
-    context = {
-        "loaded": loaded,
-        "table_columns": TABLE_COLUMNS,
-        "table_headers": TABLE_HEADERS,
-        "display_rows": [],
-        "schedule_count": 0,
-        "detail_count": 0,
-        "row_count": 0,
-    }
-
-    if loaded:
-        schedule_rows = _read_csv_rows(_schedule_file())
-        detail_rows = _read_csv_rows(_detail_file())
-        display_rows = _build_display_rows(schedule_rows, detail_rows)
-
-        context.update(
-            {
-                "display_rows": display_rows,
-                "schedule_count": len(schedule_rows),
-                "detail_count": len(detail_rows),
-                "row_count": len(display_rows),
-            }
-        )
-
-    return render(request, "input/current_proforma_schedules.html", context)
-
-
-def proforma_schedules(request):
+def current_proforma(request):
     loaded = request.GET.get("interface") in {"1", "true", "True", "yes", "on"}
     schedules = []
     max_ports = 0
@@ -160,8 +129,9 @@ def proforma_schedules(request):
         "total_columns": 5 + max_ports,
         "schedule_count": len(schedules),
         "detail_count": total_details,
+        "row_count": len(schedules),
     }
-    return render(request, "input/proforma_schedules.html", context)
+    return render(request, "input/current_proforma.html", context)
 
 
 def berth_window_status(request):

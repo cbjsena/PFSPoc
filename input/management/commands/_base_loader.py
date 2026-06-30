@@ -9,12 +9,11 @@ import csv
 import os
 from decimal import Decimal
 
+from dateutil import parser as date_parser
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
-
-from dateutil import parser as date_parser
 from tqdm import tqdm  # 진행 표시용
 
 from common import messages as msg
@@ -60,9 +59,7 @@ class DefaultDataLoader(BaseCommand):
             count, _ = m.objects.all().delete()
             if count:
                 self.stdout.write(
-                    self.style.WARNING(
-                        f"  -> Cleared {count} row(s) from {m._meta.db_table}"
-                    )
+                    self.style.WARNING(f"  -> Cleared {count} row(s) from {m._meta.db_table}")
                 )
 
     def load_models(self, models_to_load, base_data_dir):
@@ -74,9 +71,7 @@ class DefaultDataLoader(BaseCommand):
 
             if not os.path.exists(file_path):
                 self.stdout.write(
-                    self.style.WARNING(
-                        msg.FILE_NOT_FOUND.format(table=table_name, file=file_name)
-                    )
+                    self.style.WARNING(msg.FILE_NOT_FOUND.format(table=table_name, file=file_name))
                 )
                 continue
 
@@ -86,16 +81,13 @@ class DefaultDataLoader(BaseCommand):
     def load_data(self, model, file_path):
         """CSV 파일을 읽어 모델에 Bulk Insert"""
         table_name = model._meta.db_table
-        self.stdout.write(
-            self.style.MIGRATE_HEADING(msg.START_LOADING.format(table=table_name))
-        )
+        self.stdout.write(self.style.MIGRATE_HEADING(msg.START_LOADING.format(table=table_name)))
 
         data_list = []
         total_count = 0
 
         # base_bunker_consumption_sea는 배치 크기를 5000으로 설정
         batch_size = 5000 if table_name == "base_bunker_consumption_sea" else 1000
-        
 
         try:
             with open(file_path, encoding="utf-8-sig") as csvfile:
@@ -106,9 +98,7 @@ class DefaultDataLoader(BaseCommand):
                         cleaned_row = self.clean_row(model, row)
                         data_list.append(model(**cleaned_row))
                     except Exception as e:
-                        error_message = msg.ROW_ERROR.format(
-                            table=table_name, error=str(e)
-                        )
+                        error_message = msg.ROW_ERROR.format(table=table_name, error=str(e))
                         detailed_message = f"{error_message} | ROW #{i + 1} DATA: {row}"
                         self.stdout.write(self.style.ERROR(detailed_message))
 
@@ -125,14 +115,10 @@ class DefaultDataLoader(BaseCommand):
 
             if total_count > 0:
                 self.stdout.write(
-                    self.style.SUCCESS(
-                        msg.DONE_LOADING.format(table=table_name, count=total_count)
-                    )
+                    self.style.SUCCESS(msg.DONE_LOADING.format(table=table_name, count=total_count))
                 )
             else:
-                self.stdout.write(
-                    self.style.WARNING(msg.EMPTY_CSV.format(table=table_name))
-                )
+                self.stdout.write(self.style.WARNING(msg.EMPTY_CSV.format(table=table_name)))
 
         except Exception as e:
             self.stdout.write(
@@ -145,7 +131,7 @@ class DefaultDataLoader(BaseCommand):
         for key, value in row.items():
             # 필드 찾기: 소문자로 변환하여 매칭 시도
             field = self._find_field_case_insensitive(model, key)
-            
+
             if not field:
                 # 불명확한 필드는 무시 (warning 출력하지 않음)
                 continue
@@ -225,22 +211,22 @@ class DefaultDataLoader(BaseCommand):
     def _find_field_case_insensitive(self, model, column_name):
         """대소문자를 무시하고 모델의 필드를 찾는다."""
         column_lower = column_name.lower()
-        
+
         # 1. 정확한 필드명 매칭 시도
         try:
             return model._meta.get_field(column_name)
         except Exception:
             pass
-        
+
         # 2. 소문자로 비교하여 매칭 시도
         for field in model._meta.get_fields():
             if field.name.lower() == column_lower:
                 return field
             # FK 필드의 경우 column 이름도 확인
-            if hasattr(field, 'column') and field.column and field.column.lower() == column_lower:
+            if hasattr(field, "column") and field.column and field.column.lower() == column_lower:
                 return field
             # attname도 확인 (e.g., 'trade_id' for ForeignKey)
-            if hasattr(field, 'attname') and field.attname.lower() == column_lower:
+            if hasattr(field, "attname") and field.attname.lower() == column_lower:
                 return field
-        
+
         return None

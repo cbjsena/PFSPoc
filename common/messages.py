@@ -81,4 +81,3 @@ RESULT_LOAD_ERROR = "Failed to load result: {error}"
 # ==========================================
 DIR_NOT_FOUND = "Directory not found: {path}"
 FILE_NOT_FOUND = "[SKIP] File not found: {file}"
-

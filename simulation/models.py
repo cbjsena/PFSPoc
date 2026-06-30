@@ -1,13 +1,11 @@
 # simulation/models.py
-from datetime import date
 
 from django.conf import settings
-from django.db import IntegrityError, models, transaction
-from django.db.models import Max
+from django.db import models
 
 from common.constants import SIMULATION_STATUS_CHOICES, SIMULATION_STATUS_PENDING
 from common.models import CommonModel
-from input.models import MasterLane, MasterTrade, MasterPort
+from input.models import MasterLane, MasterPort, MasterTrade
 
 
 class SimulationRun(CommonModel):
@@ -90,7 +88,6 @@ class SimulationRun(CommonModel):
         return self.status in ("PENDING", "RUNNING")
 
 
-
 class SimulationBaseModel(CommonModel):
     """시나리오 테이블용 공통 모델 (FK + Audit)"""
 
@@ -103,6 +100,7 @@ class SimulationBaseModel(CommonModel):
 
     class Meta:
         abstract = True
+
 
 class SimulationBerthWindow(SimulationBaseModel):
     """
@@ -146,7 +144,9 @@ class SimulationBerthWindow(SimulationBaseModel):
 
     def __str__(self):
         # 어떤 시뮬레이션(scenario_id)의 데이터인지 알기 쉽게 문자열 포맷을 약간 수정했습니다.
-        return f"[Sim#{self.simulation.simulation_number}] {self.lane.id} - {self.port} - {self.berth}"
+        return (
+            f"[Sim#{self.simulation.simulation_number}] {self.lane.id} - {self.port} - {self.berth}"
+        )
 
     @property
     def total_volume(self):
@@ -198,6 +198,7 @@ class SimulationProformaEssentialPort(SimulationBaseModel):
     Simulation Proforma Essential Port 정보 (시나리오별 스냅샷)
     Proforma 생성 Lane에 포함해야 될 Port 정보로 특정 SimulationRun(Scenario)에 종속.
     """
+
     id = models.AutoField(primary_key=True)
     proforma = models.ForeignKey(
         SimulationProforma,
@@ -220,7 +221,7 @@ class SimulationProformaEssentialPort(SimulationBaseModel):
 
     def __str__(self):
         return f"[Sim#{self.simulation_id}] {self.proforma_id} - {str(self.port)}"
-    
+
 
 class SimulationProformaDetail(SimulationBaseModel):
     """

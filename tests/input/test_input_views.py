@@ -1,6 +1,7 @@
 import pytest
 from django.urls import reverse
 
+
 @pytest.mark.django_db
 def test_current_proforma_no_interface(client, settings, tmp_path):
     """
@@ -104,7 +105,10 @@ def test_berth_window_status_file_exists(client, settings, tmp_path):
     data_dir = tmp_path / "data"
     data_dir.mkdir()
     file_path = data_dir / "berth_window_status.csv"
-    file_path.write_text("Lane,Country,Port,Berth,ETB Day,ETB Time,ETD Day,ETD Time\nL1,KOR,P1,B1,MON,09:00,TUE,10:00\n", encoding="utf-8-sig")
+    file_path.write_text(
+        "Lane,Country,Port,Berth,ETB Day,ETB Time,ETD Day,ETD Time\nL1,KOR,P1,B1,MON,09:00,TUE,10:00\n",
+        encoding="utf-8-sig",
+    )
     settings.BASE_DIR = tmp_path
     url = reverse("input:berth_window_status") + "?interface=1"
     resp = client.get(url)
@@ -135,10 +139,23 @@ def test_build_display_rows_mapping():
     설명: _build_display_rows가 schedule/detail 매핑을 올바르게 수행하는지 검증
     """
     from input import views
+
     schedule_rows = [{"proforma_number": "PF001", "trade": "T", "lane": "L"}]
     detail_rows = [
-        {"proforma_number": "PF001", "etb_day": "MON", "etb_time": "09:00", "etd_day": "TUE", "etd_time": "10:00"},
-        {"proforma_number": "PF001", "etb_day": "TUE", "etb_time": "11:00", "etd_day": "WED", "etd_time": "12:00"},
+        {
+            "proforma_number": "PF001",
+            "etb_day": "MON",
+            "etb_time": "09:00",
+            "etd_day": "TUE",
+            "etd_time": "10:00",
+        },
+        {
+            "proforma_number": "PF001",
+            "etb_day": "TUE",
+            "etb_time": "11:00",
+            "etd_day": "WED",
+            "etd_time": "12:00",
+        },
     ]
     display = views._build_display_rows(schedule_rows, detail_rows)
     # 첫 schedule은 schedule 값이 포함된 행 1개, 이후 detail 행은 schedule=None으로 1개 더
@@ -153,6 +170,7 @@ def test_format_time_minute_only():
     설명: 숫자만 있는 입력을 분 단위로 해석하는 케이스 (예: '5' -> '00:05')
     """
     from input import views
+
     assert views._format_time("5") == "00:05"
 
 
@@ -160,8 +178,9 @@ def test_format_time_minute_only():
 # Test removed to keep test-suite aligned with current app responsibilities.
 
 
-
-@pytest.mark.xfail(reason="Grid add/insert/delete is client-side UI logic; no server endpoint", strict=False)
+@pytest.mark.xfail(
+    reason="Grid add/insert/delete is client-side UI logic; no server endpoint", strict=False
+)
 def test_pf_grid_row_add_placeholder():
     """
     Scenario: IN_PF_DIS_006

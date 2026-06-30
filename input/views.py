@@ -1,9 +1,9 @@
-from collections import defaultdict
 import csv
+from collections import defaultdict
 from pathlib import Path
 
 from django.conf import settings
-from django.http import Http404, FileResponse
+from django.http import FileResponse, Http404
 from django.shortcuts import redirect, render
 
 from input.models import DefaultBerthWindowStatus, DefaultRdrDemand
@@ -35,6 +35,7 @@ def _rdr_file():
 
 def _fleet_deploy_plan_file():
     return _data_dir() / "fleet_deploy_plan.csv"
+
 
 TABLE_COLUMNS = [
     ("Schedule", 4),
@@ -167,6 +168,7 @@ def berth_window_status(request):
 
     return render(request, "input/berth_window_status.html", context)
 
+
 def rdr(request):
     loaded = request.GET.get("interface") in {"1", "true", "True", "yes", "on"}
     context = {
@@ -194,10 +196,7 @@ def _read_csv_rows(path):
 
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
-        return [
-            {key: (value or "").strip() for key, value in row.items()}
-            for row in reader
-        ]
+        return [{key: (value or "").strip() for key, value in row.items()} for row in reader]
 
 
 def _build_display_rows(schedule_rows, detail_rows):
@@ -303,13 +302,14 @@ def _calc_duration(detail):
         return ""
 
 
-
 def csv_download(request, filename):
     """Download a CSV file from the data directory by filename."""
     path = _data_dir() / filename
     if not path.exists():
         raise Http404(f"Missing data file: {filename}")
-    return FileResponse(open(path, "rb"), as_attachment=True, filename=filename, content_type="text/csv")
+    return FileResponse(
+        open(path, "rb"), as_attachment=True, filename=filename, content_type="text/csv"
+    )
 
 
 def csv_upload(request, filename):

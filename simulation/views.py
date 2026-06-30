@@ -1,12 +1,14 @@
+import json
+from datetime import date
+
+from django.http import JsonResponse
+from django.shortcuts import redirect, render
+
 from common.constants import SIMULATION_STATUS_SUCCESS
 from common.menus import SIMULATION_SIDEBAR_MENU
 from common.views import menu_placeholder
-from django.shortcuts import get_object_or_404, redirect, render
-from django.http import JsonResponse
-from datetime import datetime, date
-import json
-from input.models import MasterTrade, MasterLane
-from simulation.models import SimulationRun, SimulationProforma
+from input.models import MasterLane, MasterTrade
+from simulation.models import SimulationProforma, SimulationRun
 
 
 def generate_simulation_number():
@@ -76,7 +78,7 @@ def simulation_creation(request):
 
 
 def port_creation(request):
-    from input.models import DefaultCurrentProforma, MasterTrade, MasterLane, MasterPort
+    from input.models import DefaultCurrentProforma, MasterLane, MasterPort, MasterTrade
 
     # Simulation Number는 새로 생성하거나 GET 파라미터에서 받음
     sim_id = request.GET.get("sim_id")
@@ -143,8 +145,8 @@ def generate_calling_ports(request):
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=400)
 
-    trade = request.POST.get("trade")
-    lane = request.POST.get("lane")
+    # trade = request.POST.get("trade")
+    # lane = request.POST.get("lane")
 
     from input.models import MasterPort
 

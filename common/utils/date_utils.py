@@ -13,4 +13,3 @@ def parse_datetime_folder(folder_name):
         return datetime.strptime(folder_name, "%Y%m%d_%H%M%S")
     except ValueError:
         return None
-

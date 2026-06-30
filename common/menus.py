@@ -97,7 +97,7 @@ SIMULATION_SIDEBAR_MENU = [
         "name": "Created Result Adjustment",
         "url_name": "simulation:created_result_adjustment",
         "icon": "bi-list-ul",
-    }
+    },
 ]
 
 

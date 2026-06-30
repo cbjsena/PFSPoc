@@ -1,14 +1,16 @@
 import os
+
 from django.apps import apps
 from django.db.models import ProtectedError
 
 from common import messages as msg
 from common.constants import (
     DEFAULT_DELETE_ORDER,
+    DEFAULT_LOAD_ORDER,
     MASTER_DELETE_ORDER,
     MASTER_LOAD_ORDER,
-    DEFAULT_LOAD_ORDER,
 )
+
 from ._base_loader import DefaultDataLoader
 
 
@@ -48,14 +50,15 @@ class Command(DefaultDataLoader):
             # 2. 새로운 데이터 로드 (순서대로 FK 의존성 고려)
             self.load_models_with_order(target_models, default_data_dir)
 
-        except ProtectedError as e:
+        except ProtectedError:
             # 💡 마스터 데이터를 참조하는 시뮬레이션 데이터가 있을 때 발생하는 에러 핸들링
             self.stdout.write(
                 self.style.ERROR(
                     "\n🚨 [데이터 초기화 실패] 외래키(PROTECT) 제약 조건 에러\n"
                     "원인: 마스터 데이터(MasterLane 등)를 삭제하려고 했으나, "
                     "시뮬레이션 앱(SimulationRun 등)에서 해당 마스터 데이터를 참조하고 있습니다.\n"
-                    "해결방법: DBeaver나 Django Admin에서 시뮬레이션 데이터(simulation_run 테이블)를 먼저 모두 삭제한 뒤 다시 실행해 주세요.\n"
+                    "해결방법: DBeaver에서 시뮬레이션 데이터(simulation_run 테이블)를"
+                    " 먼저 모두 삭제한 뒤 다시 실행해 주세요.\n"
                 )
             )
 

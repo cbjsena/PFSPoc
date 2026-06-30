@@ -3,9 +3,8 @@ from django.db import models
 
 class MasterPort(models.Model):
     """마스터 Port (Location) 정보"""
-    port_code = models.CharField(
-        max_length=10, primary_key=True, verbose_name="Location Code"
-    )
+
+    port_code = models.CharField(max_length=10, primary_key=True, verbose_name="Location Code")
     port_name = models.CharField(max_length=100, verbose_name="Location Name")
     continent_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="Continent Code"
@@ -25,9 +24,8 @@ class MasterPort(models.Model):
 
 class MasterTrade(models.Model):
     """마스터 Trade 정보"""
-    trade_code = models.CharField(
-        max_length=10, primary_key=True,  verbose_name="Trade Code"
-    )
+
+    trade_code = models.CharField(max_length=10, primary_key=True, verbose_name="Trade Code")
     trade_name = models.CharField(max_length=100, verbose_name="Trade Name")
     from_continent_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="From Continent Code"
@@ -45,12 +43,10 @@ class MasterTrade(models.Model):
         return f"{self.trade_code} - {self.trade_name}"
 
 
-
 class MasterLane(models.Model):
     """마스터 Lane (Service) 정보"""
-    lane_code = models.CharField(
-        max_length=10, primary_key=True, verbose_name="Lane Code"
-    )
+
+    lane_code = models.CharField(max_length=10, primary_key=True, verbose_name="Lane Code")
     lane_name = models.CharField(max_length=100, verbose_name="Lane Name")
     vessel_service_type_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="Vessel Service Type Code"
@@ -72,6 +68,7 @@ class MasterLane(models.Model):
 
     def __str__(self):
         return f"{self.lane_code} - {self.lane_name}"
+
 
 class DefaultBerthWindowStatus(models.Model):
     """Default Berth Window Status 정보"""
@@ -142,19 +139,15 @@ class DefaultCurrentProforma(models.Model):
         db_table = "default_current_proforma"
         verbose_name = "Default Current Proforma"
         verbose_name_plural = "DefaultCurrentProforma"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["trade", "lane"], name="uq_trade_lane"
-            )
-        ]
+        constraints = [models.UniqueConstraint(fields=["trade", "lane"], name="uq_trade_lane")]
 
     def __str__(self):
         return f"{self.trade} - {str(self.lane)}"
 
 
-
 class DefaultProformaEssentialPort(models.Model):
     """Default Proforma Essential Port 정보"""
+
     id = models.AutoField(primary_key=True)
     current_proforma = models.ForeignKey(
         DefaultCurrentProforma,
@@ -177,6 +170,7 @@ class DefaultProformaEssentialPort(models.Model):
 
     def __str__(self):
         return f"{self.current_proforma} - {self.port}"
+
 
 class DefaultCurrentProformaDetail(models.Model):
     """현재 Proforma 스케줄 상세 정보"""
@@ -211,8 +205,9 @@ class DefaultCurrentProformaDetail(models.Model):
     def __str__(self):
         return f"{self.current_proforma} - {self.port} ({self.terminal})"
 
+
 class DefaultRdrDemand(models.Model):
-    """ rdr demand """
+    """rdr demand"""
 
     id = models.AutoField(primary_key=True, verbose_name="RdrDemand ID")
     trade = models.ForeignKey(
@@ -236,9 +231,7 @@ class DefaultRdrDemand(models.Model):
         db_column="pod_code",
         related_name="pod_demands",
     )
-    demand_value = models.DecimalField(
-        max_digits=10, decimal_places=2, verbose_name="Demand Value"
-    )
+    demand_value = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Demand Value")
 
     def __str__(self):
         return f"{self.trade.trade_code} : {self.pol.port_code} -> {self.pod.port_code}"

@@ -34,4 +34,3 @@ def filename_stem(value):
     if not value:
         return ""
     return str(value).rsplit(".", 1)[0] if "." in str(value) else str(value)
-

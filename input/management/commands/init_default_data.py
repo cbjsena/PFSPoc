@@ -1,9 +1,14 @@
 import os
-
 from django.apps import apps
+from django.db.models import ProtectedError
 
 from common import messages as msg
-
+from common.constants import (
+    DEFAULT_DELETE_ORDER,
+    MASTER_DELETE_ORDER,
+    MASTER_LOAD_ORDER,
+    DEFAULT_LOAD_ORDER,
+)
 from ._base_loader import DefaultDataLoader
 
 
@@ -18,17 +23,16 @@ class Command(DefaultDataLoader):
             return
 
         if not os.path.exists(default_data_dir):
-            self.stdout.write(
-                self.style.ERROR(msg.DIR_NOT_FOUND.format(path=default_data_dir))
-            )
+            self.stdout.write(self.style.ERROR(msg.DIR_NOT_FOUND.format(path=default_data_dir)))
             return
 
         app_config = apps.get_app_config("input")
-        
+
         # Master 또는 Default로 시작하는 모델 필터링
         target_models = [
-            m for m in app_config.get_models() 
-            if m._meta.db_table.startswith("master_") or m._meta.db_table.startswith("default_") or m._meta.db_table == "proforma_schedule"
+            m
+            for m in app_config.get_models()
+            if m._meta.db_table.startswith("master_") or m._meta.db_table.startswith("default_")
         ]
 
         self.stdout.write(
@@ -37,82 +41,63 @@ class Command(DefaultDataLoader):
             )
         )
 
-        # 기존 데이터 삭제 (역순으로 FK 의존성 고려)
-        self.delete_models_with_order(target_models)
-        
-        # Master 테이블은 순서대로 로드 (FK 의존성 고려)
-        # MasterPort, MasterTrade, MasterLane -> Default 모델들 순서
-        self.load_models_with_order(target_models, default_data_dir)
+        try:
+            # 1. 기존 데이터 삭제 (역순으로 FK 의존성 고려)
+            self.delete_models_with_order(target_models)
+
+            # 2. 새로운 데이터 로드 (순서대로 FK 의존성 고려)
+            self.load_models_with_order(target_models, default_data_dir)
+
+        except ProtectedError as e:
+            # 💡 마스터 데이터를 참조하는 시뮬레이션 데이터가 있을 때 발생하는 에러 핸들링
+            self.stdout.write(
+                self.style.ERROR(
+                    "\n🚨 [데이터 초기화 실패] 외래키(PROTECT) 제약 조건 에러\n"
+                    "원인: 마스터 데이터(MasterLane 등)를 삭제하려고 했으나, "
+                    "시뮬레이션 앱(SimulationRun 등)에서 해당 마스터 데이터를 참조하고 있습니다.\n"
+                    "해결방법: DBeaver나 Django Admin에서 시뮬레이션 데이터(simulation_run 테이블)를 먼저 모두 삭제한 뒤 다시 실행해 주세요.\n"
+                )
+            )
 
     def delete_models_with_order(self, models_to_delete):
         """FK 의존성을 고려하여 역순으로 데이터 삭제"""
-        # Default 테이블 먼저 삭제 (Child 모델 먼저)
-        default_models = [m for m in models_to_delete if m._meta.db_table.startswith("default_") or m._meta.db_table == "proforma_schedule"]
-        
-        # 삭제 순서: Child 모델 먼저, 그 다음 Parent 모델
-        order_map_default = {
-            "default_current_proforma_detail": 1,  # Child 모델 먼저
-            "default_berth_window_status": 2,
-            "default_rdr_demand": 2,
-            "default_current_proforma": 3,  # Parent 모델 나중에
-        }
-        default_models.sort(key=lambda m: order_map_default.get(m._meta.db_table, 999))
-        
+
+        # Default 테이블 먼저 삭제
+        default_models = [m for m in models_to_delete if m._meta.db_table.startswith("default_")]
+        default_models.sort(key=lambda m: DEFAULT_DELETE_ORDER.get(m._meta.db_table, 999))
         self.delete_models(default_models)
-        
-        # Master 테이블 삭제 (역순: Lane -> Trade -> Port)
+
+        # Master 테이블 나중에 삭제
         master_models = [m for m in models_to_delete if m._meta.db_table.startswith("master_")]
-        order_map_master = {
-            "master_lane": 1,
-            "master_trade": 2,
-            "master_port": 3,
-        }
-        master_models.sort(key=lambda m: order_map_master.get(m._meta.db_table, 999))
-        
+        master_models.sort(key=lambda m: MASTER_DELETE_ORDER.get(m._meta.db_table, 999))
         self.delete_models(master_models)
 
     def load_models_with_order(self, models_to_load, base_data_dir):
         """의존성을 고려하여 모델을 순서대로 로드"""
-        # Master 테이블 먼저 로드 (의존성 없음)
+
+        # Master 테이블 먼저 로드
         master_models = [m for m in models_to_load if m._meta.db_table.startswith("master_")]
-        
-        # 로드 순서: MasterPort, MasterTrade, MasterLane
-        order_map = {
-            "master_port": 1,
-            "master_trade": 2,
-            "master_lane": 3,
-        }
-        master_models.sort(key=lambda m: order_map.get(m._meta.db_table, 999))
-        
+        master_models.sort(key=lambda m: MASTER_LOAD_ORDER.get(m._meta.db_table, 999))
+
         for model in master_models:
             self.load_model_safe(model, base_data_dir)
-        
-        # Default 테이블 로드 (Master 로드 이후)
-        default_models = [m for m in models_to_load if m._meta.db_table.startswith("default_") or m._meta.db_table == "proforma_schedule"]
-        
-        # 로드 순서: DefaultProformaSchedule(proforma_schedule)은 다른 Default 모델보다 먼저
-        order_map_default = {
-            "default_current_proforma": 1,  # Parent 모델 먼저
-            "default_berth_window_status": 2,
-            "default_current_proforma_detail": 3,  # Child 모델은 나중에
-            "default_rdr_demand": 2,
-        }
-        default_models.sort(key=lambda m: order_map_default.get(m._meta.db_table, 999))
-        
+
+        # Default 테이블 나중에 로드
+        default_models = [m for m in models_to_load if m._meta.db_table.startswith("default_")]
+        default_models.sort(key=lambda m: DEFAULT_LOAD_ORDER.get(m._meta.db_table, 999))
+
         for model in default_models:
             self.load_model_safe(model, base_data_dir)
 
     def load_model_safe(self, model, base_data_dir):
-        """개별 모델을 안전하게 로드 (삭제 없음)"""
+        """개별 모델을 안전하게 로드"""
         table_name = model._meta.db_table
         file_name = f"{table_name}.csv"
         file_path = os.path.join(base_data_dir, file_name)
 
         if not os.path.exists(file_path):
             self.stdout.write(
-                self.style.WARNING(
-                    msg.FILE_NOT_FOUND.format(table=table_name, file=file_name)
-                )
+                self.style.WARNING(msg.FILE_NOT_FOUND.format(table=table_name, file=file_name))
             )
             return
 

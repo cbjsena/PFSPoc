@@ -7,7 +7,7 @@ from django.db.models import Max
 
 from common.constants import SIMULATION_STATUS_CHOICES, SIMULATION_STATUS_PENDING
 from common.models import CommonModel
-from input.models import MasterLane, MasterTrade
+from input.models import MasterLane, MasterTrade, MasterPort
 
 
 class SimulationRun(CommonModel):
@@ -108,7 +108,7 @@ class SimulationBerthWindow(SimulationBaseModel):
     """
     Simulation Berth Window Status 정보 (시나리오별 스냅샷)
     DefaultBerthWindowStatus와 동일한 구조를 가지되,
-    특정 SimulationRun(Scenario)에 종속됩니다.
+    특정 SimulationRun(Scenario)에 종속.
     """
 
     id = models.AutoField(primary_key=True)
@@ -157,7 +157,10 @@ class SimulationBerthWindow(SimulationBaseModel):
 
 
 class SimulationProforma(SimulationBaseModel):
-    """Default Proforma 스케줄 메인 정보"""
+    """
+    Simulation Proforma 정보 (시나리오별 스냅샷) DefaultCurrentProforma와 동일한 구조를 가지되,
+    특정 SimulationRun(Scenario)에 종속.
+    """
 
     id = models.AutoField(primary_key=True)
     trade = models.ForeignKey(
@@ -188,3 +191,70 @@ class SimulationProforma(SimulationBaseModel):
 
     def __str__(self):
         return f"[Sim#{self.simulation_id}] {self.trade} - {str(self.lane)}"
+
+
+class SimulationProformaEssentialPort(SimulationBaseModel):
+    """
+    Simulation Proforma Essential Port 정보 (시나리오별 스냅샷)
+    Proforma 생성 Lane에 포함해야 될 Port 정보로 특정 SimulationRun(Scenario)에 종속.
+    """
+    id = models.AutoField(primary_key=True)
+    proforma = models.ForeignKey(
+        SimulationProforma,
+        on_delete=models.CASCADE,
+        db_column="proforma_id",
+        related_name="essential_ports",
+        verbose_name="Simulation Proforma ID",
+    )
+    port = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        to_field="port_code",
+        db_column="port_code",
+        verbose_name="Port Code",
+    )
+
+    class Meta:
+        db_table = "simulation_proforma_essential_port"
+        verbose_name = "Simulation Proforma Essential Port"
+
+    def __str__(self):
+        return f"[Sim#{self.simulation_id}] {self.proforma_id} - {str(self.port)}"
+    
+
+class SimulationProformaDetail(SimulationBaseModel):
+    """
+    Simulation Proforma 상세 정보 (시나리오별 스냅샷)
+    DefaultCurrentProformaDetail 동일한 구조를 가지되,
+    특정 SimulationRun(Scenario)에 종속.
+    """
+
+    id = models.AutoField(primary_key=True)
+    proforma = models.ForeignKey(
+        SimulationProforma,
+        on_delete=models.CASCADE,
+        db_column="proforma_id",
+        related_name="details",
+        verbose_name="Simulation Proforma ID",
+    )
+    port = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        to_field="port_code",
+        db_column="port_code",
+        verbose_name="Port Code",
+    )
+    terminal = models.CharField(max_length=50, null=True, blank=True, verbose_name="Terminal")
+
+    etb_day = models.CharField(max_length=10, null=True, blank=True, verbose_name="ETB Day")
+    etb_time = models.CharField(max_length=20, null=True, blank=True, verbose_name="ETB Time")
+    etd_day = models.CharField(max_length=10, null=True, blank=True, verbose_name="ETD Day")
+    etd_time = models.CharField(max_length=20, null=True, blank=True, verbose_name="ETD Time")
+
+    class Meta:
+        db_table = "simulation_proforma_detail"
+        verbose_name = "Simulation Proforma Detail"
+        verbose_name_plural = "Simulation Proforma Details"
+
+    def __str__(self):
+        return f"[Sim#{self.simulation_id}] {self.proforma_id} - {self.port} ({self.terminal})"

@@ -151,6 +151,33 @@ class DefaultCurrentProforma(models.Model):
     def __str__(self):
         return f"{self.trade} - {str(self.lane)}"
 
+
+
+class DefaultProformaEssentialPort(models.Model):
+    """Default Proforma Essential Port 정보"""
+    id = models.AutoField(primary_key=True)
+    current_proforma = models.ForeignKey(
+        DefaultCurrentProforma,
+        on_delete=models.CASCADE,
+        db_column="proforma_id",
+        related_name="essential_ports",
+        verbose_name="Default Current Proforma ID",
+    )
+    port = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        to_field="port_code",
+        db_column="port_code",
+        verbose_name="Port Code",
+    )
+
+    class Meta:
+        db_table = "default_proforma_essential_port"
+        verbose_name = "Default Proforma Essential Port"
+
+    def __str__(self):
+        return f"{self.current_proforma} - {self.port}"
+
 class DefaultCurrentProformaDetail(models.Model):
     """현재 Proforma 스케줄 상세 정보"""
 

@@ -1,0 +1,32 @@
+ID,기능명,시나리오 설명,Given,When,Then
+SIM_LST_DIS_001,Simulation List - 비로딩,Simulation List 초기 로딩 (데이터 없음),SimulationRun 데이터 미존재,GET /simulation/,페이지 로드됨, 'No simulations found' 메시지 표시
+SIM_LST_DIS_002,Simulation List - 데이터 로딩,Simulation List 데이터 로딩 (여러 시뮬레이션),5개의 SimulationRun 데이터 존재,GET /simulation/,테이블에 5개 행 표시, ID/Status/Created At/Actions 컬럼 표시
+SIM_LST_DIS_003,Simulation List - 상태 배지,시뮬레이션 상태별 배지 표시 검증,PENDING/RUNNING/SUCCESS/FAILED 상태의 시뮬레이션 4개 존재,GET /simulation/,각 상태별 배지 색상 정확 (warning/info/success/danger)
+SIM_LST_DIS_004,Simulation List - 사용자 필터링,사용자별 필터링 동작 검증,User A 5개, User B 3개 시뮬레이션 존재,GET /simulation/?created_by_id=<User_A_id>,User A의 5개 시뮬레이션만 표시
+SIM_LST_DIS_005,Simulation List - View 버튼,View 버튼 클릭 시 모니터링 화면 이동,시뮬레이션 데이터 존재,View 버튼 클릭,simulation_monitoring 화면으로 이동
+SIM_LST_DIS_006,Simulation List - Restart 버튼,Restart 버튼 클릭 시 기존 시뮬레이션으로 Port Creation 화면 이동,ID=5인 시뮬레이션 존재,Restart 버튼 클릭,/simulation/port-creation/?sim_id=5로 이동, 기존 데이터 로드
+SIM_LST_DIS_007,Simulation List - Delete 버튼,Delete 버튼 클릭 후 삭제 확인 다이얼로그,ID=3인 시뮬레이션 존재,Delete 버튼 클릭,확인 다이얼로그 표시
+SIM_LST_API_001,Simulation Delete AJAX,Delete 확인 후 AJAX POST로 삭제,ID=3인 시뮬레이션 존재 및 CSRF 토큰 유효,fetch POST /simulation/delete/3/ (JSON),HTTP 200 응답, SimulationRun ID=3 DB에서 삭제됨, 페이지 새로고침
+SIM_LST_API_002,Simulation Delete 오류 처리,존재하지 않는 시뮬레이션 삭제 요청,ID=999인 시뮬레이션 미존재,fetch POST /simulation/delete/999/,HTTP 404 응답 + error 메시지
+SIM_PRT_DIS_001,Port Creation - 새 시뮬레이션,새 Port Creation 시작 (sim_id 없음),GET 파라미터 sim_id 없음,GET /simulation/port-creation/,새 SimulationRun 생성 (시뮬레이션번호 생성), 화면 로드, Simulation # 표시
+SIM_PRT_DIS_002,Port Creation - 기존 시뮬레이션,기존 시뮬레이션 수정 (sim_id 있음),ID=5인 SimulationRun 존재,GET /simulation/port-creation/?sim_id=5,기존 데이터 로드, Simulation # 표시, 행 데이터 표시
+SIM_PRT_DIS_003,Port Creation - 초기 행 표시,DefaultCurrentProforma 데이터 초기 표시,DefaultCurrentProforma에 3개 행 존재 (Trade/Lane/Capacity/Qty),GET /simulation/port-creation/,테이블에 3개 행 표시, Trade/Lane은 텍스트 (선택 불가), Capacity/Qty는 입력 가능
+SIM_PRT_DIS_004,Port Creation - Trade/Lane 비선택,초기 행의 Trade/Lane은 선택 불가 확인,DefaultCurrentProforma 행 존재,GET /simulation/port-creation/ 후 첫 행 Trade 셀 검사,셀이 plaintext 또는 disabled input (select 아님)
+SIM_PRT_DIS_005,Port Creation - Essentials 포트 입력,Essentials 포트 5개 컬럼 입력 가능,Port Creation 화면 로드,각 Essentials 컬럼의 input 클릭,datalist 나타남, MasterPort 데이터로 자동완성
+SIM_PRT_DIS_006,Port Creation - Insert Row 버튼,Insert Row 버튼으로 새 행 추가,Port Creation 화면 로드 (3개 기존 행),Insert Row 버튼 클릭,테이블에 4번째 행 추가, Trade/Lane은 select (선택 필요), Capacity/Qty는 빈 입력
+SIM_PRT_DIS_007,Port Creation - Delete Row 버튼,체크된 행 삭제,4개 행 존재, 2번째 행 체크,Delete Row 버튼 클릭,2번째 행 삭제됨, 테이블에 3개 행 남음
+SIM_PRT_DIS_008,Port Creation - Select All 체크박스,Select All 체크박스로 모든 행 선택,4개 행 존재,첫 번째 행의 Select All 체크박스 클릭,모든 행의 row-check 체크됨
+SIM_PRT_DIS_009,Port Creation - 가로 스크롤바 고정,가로 스크롤바가 테이블 상단에 고정,화면 로드 후 테이블 아래로 스크롤,테이블 스크롤,스크롤바가 화면 상단에 고정되어 보임
+SIM_PRT_DIS_010,Port Creation - 버튼 위치,버튼이 테이블 우측 하단으로 정렬,Port Creation 화면 로드,화면 검사,Insert Row/Delete Row/Calling Port Creation 버튼이 테이블 우측 상단, Save/Cancel 버튼이 우측 하단
+SIM_PRT_VAL_001,Port Creation - Trade+Lane 중복 검증,신규 행 추가 시 Trade+Lane 중복 확인,기존 행 (Trade=A1, Lane=L1), 신규 행에 동일 Trade/Lane 선택,신규 행의 Lane select 변경 시,중복 경고 알림 표시, select 값 초기화
+SIM_PRT_VAL_002,Port Creation - 필수 필드 검증,Trade와 Lane이 비어있으면 저장 불가,4개 행 중 2개 행에 Trade/Lane 미입력,Save 버튼 클릭,경고 메시지 표시, 저장 진행 안됨
+SIM_PRT_VAL_003,Port Creation - Capacity/Qty 정수 입력,Capacity/Qty는 정수만 입력 가능,신규 행 추가,Capacity 셀에 'abc' 입력 시도,브라우저 기본 number input 검증 (입력 거부 또는 경고)
+SIM_PRT_API_001,Port Creation - Calling Port Creation,Calling Port Creation 버튼으로 데이터 서버 전송,4개 행 완성 (모든 필드 입력),Calling Port Creation 버튼 클릭,모든 행 데이터 JSON으로 POST /simulation/port-creation/generate-calling-ports/, HTTP 200 응답, pfs_creation 화면으로 리다이렉트
+SIM_PRT_API_002,Port Creation - Calling Port 데이터 검증,전송된 행 데이터 형식 검증,4개 행 (Trade/Lane/Capacity/Qty/Essentials 완성),Calling Port Creation 클릭 시 fetch 요청,POST body에 rows 배열 포함, 각 row에 trade/lane/capacity/qty 필드 포함
+SIM_PRT_API_003,Port Creation - Save 버튼,Save 버튼으로 데이터 저장,4개 행 완성 (Trade/Lane/Capacity/Qty),Save 버튼 클릭,fetch POST /simulation/port-creation/save/, JSON body에 simulation_id + rows 포함
+SIM_PRT_API_004,Port Creation - Save 저장 검증,Save 후 SimulationProforma 테이블 저장 확인,SIM ID=5, 4개 행 데이터,Save 버튼 클릭 후 DB 확인,SimulationProforma 4개 행 생성 (simulation_id=5), trade/lane/capacity/qty 필드 저장됨
+SIM_PRT_API_005,Port Creation - Save 성공 응답,Save 성공 후 리스트로 리다이렉트,모든 행 데이터 유효,Save 버튼 클릭,HTTP 200 + JSON {success: true} 응답, 페이지 /simulation/ 으로 리다이렉트 + 성공 메시지
+SIM_PRT_API_006,Port Creation - Save 오류 처리,Trade/Lane 마스터 데이터 미존재 시,신규 행에 존재하지 않는 Trade='ZZZ' 입력,Save 버튼 클릭,HTTP 400 또는 500 + error 메시지, 저장 롤백
+SIM_NUM_GEN_001,Simulation Number - 신규 생성,시뮬레이션 번호 YYYYMMDD_NN-01 형식 생성,오늘 날짜 첫 번째 시뮬레이션,GET /simulation/port-creation/ (새로 생성),simulation_number = YYYYMMDD_01-01 형식
+SIM_NUM_GEN_002,Simulation Number - 순차 증가,같은 날짜 내 순차 번호 증가,오늘 날짜 첫 번째 생성됨, 두 번째 시뮬레이션 생성,GET /simulation/port-creation/ (두 번째 새로 생성),simulation_number = YYYYMMDD_02-01 형식 (NN 증가)
+SIM_NUM_GEN_003,Simulation Number - 기존 시뮬레이션 재편집,기존 시뮬레이션 재편집 시 번호 유지,ID=5인 기존 SimulationRun (simulation_number=20260630_01-01),GET /simulation/port-creation/?sim_id=5,화면의 Simulation # 표시에 기존 번호 유지 (20260630_01-01)

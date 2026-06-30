@@ -20,7 +20,7 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h3><i class="bi bi-play-circle"></i> Simulation List</h3>
-    <a href="{% url 'simulation:simulation_creation' %}" class="btn btn-primary">
+    <a href="{% url 'simulation:port_creation' %}" class="btn btn-primary">
         <i class="bi bi-plus-circle"></i> New Simulation
     </a>
 </div>
@@ -46,7 +46,7 @@
     <table class="table table-hover">
         <thead class="table-light">
             <tr>
-                <th>ID</th>
+                <th>Simulation Number</th>
                 <th>Status</th>
                 <th>Progress</th>
                 <th>Created By</th>
@@ -60,7 +60,7 @@
             {% for sim in simulations %}
             <tr>
                 <td>
-                    <strong>#{{ sim.id }}</strong>
+                    <strong>#{{ sim.simulation_number }}</strong>
                 </td>
                 <td>
                     {% if sim.status == "PENDING" %}
@@ -91,9 +91,15 @@
                 <td>{% if sim.execution_time %}{{ sim.execution_time|floatformat:2 }}s{% else %}-{% endif %}</td>
                 <td>{% if sim.objective_value %}{{ sim.objective_value|floatformat:4 }}{% else %}-{% endif %}</td>
                 <td>
-                    <a href="{% url 'simulation:simulation_monitoring' %}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-eye"></i> View
+<!--                    <a href="{% url 'simulation:simulation_monitoring' %}" class="btn btn-sm btn-outline-primary">-->
+<!--                        <i class="bi bi-eye"></i> View-->
+<!--                    </a>-->
+                     <a href="{% url 'simulation:port_creation' %}?sim_id={{ sim.id }}" class="btn btn-sm btn-outline-info">
+                        <i class="bi bi-arrow-clockwise"></i> Restart
                     </a>
+                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteSimulation({{ sim.id }})">
+                        <i class="bi bi-trash"></i> Delete
+                    </button>
                 </td>
             </tr>
             {% endfor %}
@@ -106,4 +112,50 @@
     No simulations found.
 </div>
 {% endif %}
+
+<script>
+// CSRF 토큰 가져오기 헬퍼 함수
+function getCsrfToken() {
+    const name = 'csrftoken';
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function deleteSimulation(simId) {
+    if (confirm('Are you sure you want to delete this simulation?')) {
+        const deleteUrl = `/simulation/delete/${simId}/`;
+
+        fetch(deleteUrl, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCsrfToken(),
+                'Content-Type': 'application/json',
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                location.reload();
+            } else {
+                return response.json().then(data => {
+                    throw new Error(data.error || 'Failed to delete');
+                });
+            }
+        })
+        .catch(err => {
+            console.error('Delete error:', err);
+            alert('Error deleting simulation: ' + err.message);
+        });
+    }
+}
+</script>
 {% endblock %}

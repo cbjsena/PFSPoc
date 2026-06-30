@@ -1,15 +1,34 @@
 # simulation/models.py
+from datetime import date
+
 from django.conf import settings
-from django.db import models
+from django.db import IntegrityError, models, transaction
+from django.db.models import Max
 
 from common.constants import SIMULATION_STATUS_CHOICES, SIMULATION_STATUS_PENDING
+from common.models import CommonModel
+from input.models import MasterLane, MasterTrade
 
 
-class SimulationRun(models.Model):
+class SimulationRun(CommonModel):
     """시뮬레이션 실행 기록 (DB 관리)."""
 
     id = models.AutoField(primary_key=True, verbose_name="Simulation ID")
-
+    simulation_number = models.CharField(
+        max_length=20,
+        unique=True,
+        verbose_name="Simulation Number",
+        help_text="Auto-generated unique (YYYYMMDD_NN-XX)",
+        blank=True,
+    )
+    base_simulation_number = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Base Simulation Number",
+        help_text="Reference Simulation Number",
+    )
     # 상태 & 진행률
     status = models.CharField(
         max_length=20,
@@ -70,3 +89,102 @@ class SimulationRun(models.Model):
     def can_cancel(self):
         return self.status in ("PENDING", "RUNNING")
 
+
+
+class SimulationBaseModel(CommonModel):
+    """시나리오 테이블용 공통 모델 (FK + Audit)"""
+
+    simulation = models.ForeignKey(
+        SimulationRun,
+        on_delete=models.CASCADE,
+        verbose_name="Simulation ID",
+        related_name="%(class)s_set",
+    )
+
+    class Meta:
+        abstract = True
+
+class SimulationBerthWindow(SimulationBaseModel):
+    """
+    Simulation Berth Window Status 정보 (시나리오별 스냅샷)
+    DefaultBerthWindowStatus와 동일한 구조를 가지되,
+    특정 SimulationRun(Scenario)에 종속됩니다.
+    """
+
+    id = models.AutoField(primary_key=True)
+
+    # scenario 필드는 ScenarioBaseModel에서 자동으로 상속받습니다.
+    # created_at, created_by, updated_at, updated_by 역시 CommonModel에서 상속됩니다.
+
+    lane = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        to_field="lane_code",
+        db_column="lane_code",
+        verbose_name="Lane Code / 3 alpha",
+    )
+    country = models.CharField(max_length=20, null=True, blank=True, verbose_name="Country")
+    port = models.CharField(max_length=20, null=True, blank=True, verbose_name="Port")
+    berth = models.CharField(max_length=50, null=True, blank=True, verbose_name="Berth")
+
+    etb_day = models.CharField(max_length=10, null=True, blank=True, verbose_name="ETB Day")
+    etb_time = models.CharField(max_length=20, null=True, blank=True, verbose_name="ETB Time")
+    etd_day = models.CharField(max_length=10, null=True, blank=True, verbose_name="ETD Day")
+    etd_time = models.CharField(max_length=20, null=True, blank=True, verbose_name="ETD Time")
+
+    loading_volume = models.IntegerField(null=True, blank=True, verbose_name="Loading Volume")
+    discharging_volume = models.IntegerField(
+        null=True, blank=True, verbose_name="Discharging Volume"
+    )
+    productivity = models.IntegerField(null=True, blank=True, verbose_name="Productivity")
+    berthing = models.IntegerField(null=True, blank=True, verbose_name="Berthing")
+
+    class Meta:
+        db_table = "simulation_berth_window"
+        verbose_name = "Simulation Berth Window"
+        verbose_name_plural = "Simulation Berth Windows"
+
+    def __str__(self):
+        # 어떤 시뮬레이션(scenario_id)의 데이터인지 알기 쉽게 문자열 포맷을 약간 수정했습니다.
+        return f"[Sim#{self.simulation.simulation_number}] {self.lane.id} - {self.port} - {self.berth}"
+
+    @property
+    def total_volume(self):
+        # 값이 없으면(None) 0으로 처리하여 합산합니다.
+        loading = self.loading_volume if self.loading_volume is not None else 0
+        discharging = self.discharging_volume if self.discharging_volume is not None else 0
+        return loading + discharging
+
+
+class SimulationProforma(SimulationBaseModel):
+    """Default Proforma 스케줄 메인 정보"""
+
+    id = models.AutoField(primary_key=True)
+    trade = models.ForeignKey(
+        MasterTrade,
+        on_delete=models.PROTECT,
+        to_field="trade_code",
+        db_column="trade_code",
+        verbose_name="Trade Code",
+    )
+    lane = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        to_field="lane_code",
+        db_column="lane_code",
+        verbose_name="Lane Code / 3 alpha",
+    )
+    capacity = models.IntegerField(null=True, blank=True, verbose_name="Capacity")
+    qty = models.IntegerField(null=True, blank=True, verbose_name="Qty")
+
+    class Meta:
+        db_table = "simulation_proforma"
+        verbose_name = "Simulation Proforma"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["simulation", "trade", "lane"], name="uq_simulation_trade_lane"
+            )
+        ]
+
+    def __str__(self):
+        return f"[Sim#{self.simulation_id}] {self.trade} - {str(self.lane)}"

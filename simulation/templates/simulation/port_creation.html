@@ -1,0 +1,484 @@
+{% extends "base.html" %}
+
+{% block title %}Port Creation - Proforma Simulation Demo{% endblock %}
+
+{% block style %}
+<style>
+    /* 가로 스크롤 테이블을 위한 최소 너비 설정 */
+    .port-input {
+        min-width: 80px;
+        max-width: 100px;
+    }
+    .base-input {
+        min-width: 100px;
+    }
+    /* 테이블 헤더 스타일 조정 */
+    .table-group-header {
+        background-color: #f8f9fa !important;
+        font-weight: 700;
+        text-align: center;
+    }
+    
+    /* 가로 스크롤바 고정 */
+    .scroll-container-wrapper {
+        position: relative;
+    }
+    .scroll-container {
+        overflow-x: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+    .scroll-container-top {
+        width: 100%;
+        height: 12px;
+        background: transparent;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: -1px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .scroll-sync {
+        height: 12px;
+        width: 100%;
+        min-width: 900px;
+    }
+</style>
+{% endblock %}
+
+{% block sidebar %}
+<div class="sidebar-heading d-flex align-items-center">
+    <i class="bi bi-list"></i>
+    <span class="ms-2">Simulation</span>
+</div>
+<nav class="nav flex-column">
+    {% for menu_item in sidebar_menu %}
+    <a class="nav-link {% if current_sidebar_menu == menu_item.key %}active{% endif %}"
+       href="{% url menu_item.url_name %}">
+        <i class="bi {{ menu_item.icon }} me-2"></i>{{ menu_item.name }}
+    </a>
+    {% endfor %}
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <h3 class="mb-4"><i class="bi bi-geo-alt"></i> Port Creation</h3>
+
+        <!-- 기본 submit 방어를 위해 onsubmit="return false;" 추가 -->
+        <form method="post" id="portForm" class="needs-validation" onsubmit="return false;">
+            {% csrf_token %}
+            <input type="hidden" id="simId" name="sim_id" value="{{ request.GET.sim_id|default:'' }}">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h4 class="mb-0">
+                        <i class="bi bi-hash"></i> Simulation {{ simulation_number }}
+                    </h4>
+                </div>
+                <div>
+                    <button type="button" id="insertRowBtn" class="btn btn-sm btn-outline-primary me-2">
+                        <i class="bi bi-plus-lg"></i> Insert Row
+                    </button>
+                    <button type="button" id="deleteRowBtn" class="btn btn-sm btn-outline-danger me-2">
+                        <i class="bi bi-trash"></i> Delete Row
+                    </button>
+                </div>
+            </div>
+
+            <datalist id="ports-list">
+                {% for mp in master_ports %}
+                <option value="{{ mp.port_code }}">{{ mp.port_name }}</option>
+                {% endfor %}
+            </datalist>
+
+            <!-- 고정 스크롤바 -->
+            <div class="scroll-container-top">
+                <div class="scroll-sync"></div>
+            </div>
+
+            <div class="scroll-container" style="border-top: none; border-radius: 0;">
+                <table class="table table-bordered mb-0" id="proformaTable" style="min-width: 900px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:40px;"><input type="checkbox" id="selectAll"></th>
+                            <th>Trade</th>
+                            <th>Lane</th>
+                            <th style="width:120px;">Capacity</th>
+                            <th style="width:120px;">Qty</th>
+                            <th colspan="5" class="text-center">Essentials Ports</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th>Port 1</th>
+                            <th>Port 2</th>
+                            <th>Port 3</th>
+                            <th>Port 4</th>
+                            <th>Port 5</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in proformas %}
+                        <tr class="data-row initial-row">
+                            <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
+
+                            <td class="align-middle">
+                                <div class="form-control-plaintext small">{{ p.trade.trade_code }}</div>
+                                <input type="hidden" name="rows-{{ forloop.counter0 }}-trade" value="{{ p.trade.trade_code }}">
+                            </td>
+
+                            <td class="align-middle">
+                                <div class="form-control-plaintext small">{{ p.lane.lane_code }}</div>
+                                <input type="hidden" name="rows-{{ forloop.counter0 }}-lane" value="{{ p.lane.lane_code }}">
+                            </td>
+
+                            <td>
+                                <input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-{{ forloop.counter0 }}-capacity" value="{{ p.capacity|default:'' }}">
+                            </td>
+                            <td>
+                                <input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-{{ forloop.counter0 }}-qty" value="{{ p.qty|default:'' }}">
+                            </td>
+
+                            <!-- Essentials: 5 Port columns -->
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-0" placeholder="Port 1"></td>
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-1" placeholder="Port 2"></td>
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-2" placeholder="Port 3"></td>
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-3" placeholder="Port 4"></td>
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-4" placeholder="Port 5"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <button type="button" id="generateCallingPortsBtn" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-gear"></i> Calling Port Creation
+                </button>
+                <button type="button" id="saveBtn" class="btn btn-sm btn-primary">
+                    <i class="bi bi-save"></i> Save
+                </button>
+                <a href="{% url 'simulation:simulation_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancel
+                </a>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+// 스크롤 동기화
+const scrollContainerTop = document.querySelector('.scroll-container-top');
+const scrollContainer = document.querySelector('.scroll-container');
+
+scrollContainer.addEventListener('scroll', function() {
+    scrollContainerTop.scrollLeft = scrollContainer.scrollLeft;
+});
+
+scrollContainerTop.addEventListener('scroll', function() {
+    scrollContainer.scrollLeft = scrollContainerTop.scrollLeft;
+});
+
+function nextRowIndex() {
+    const rows = document.querySelectorAll('#proformaTable tbody tr');
+    return rows.length;
+}
+
+function insertRow() {
+    const tbody = document.querySelector('#proformaTable tbody');
+    const idx = nextRowIndex();
+
+    const trades = [
+        {% for t in trades %}
+        {code: '{{ t.trade_code }}', name: '{{ t.trade_name|escapejs }}' },
+        {% endfor %}
+    ];
+    const lanes = [
+        {% for l in lanes %}
+        {code: '{{ l.lane_code }}', name: '{{ l.lane_name|escapejs }}' },
+        {% endfor %}
+    ];
+
+    const tr = document.createElement('tr');
+    tr.classList.add('data-row');
+    tr.innerHTML = `
+        <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
+        <td>
+            <select class="form-select form-select-sm trade-select" name="rows-${idx}-trade" required>
+                <option value="">-- Select Trade --</option>
+                ${trades.map(t => `<option value="${t.code}">[${t.code}] ${t.name}</option>`).join('')}
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm lane-select" name="rows-${idx}-lane" required>
+                <option value="">-- Select Lane --</option>
+                ${lanes.map(l => `<option value="${l.code}">[${l.code}] ${l.name}</option>`).join('')}
+            </select>
+        </td>
+        <td><input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-${idx}-capacity"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-${idx}-qty"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-0" placeholder="Port 1"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-1" placeholder="Port 2"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-2" placeholder="Port 3"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-3" placeholder="Port 4"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-4" placeholder="Port 5"></td>
+    `;
+    tbody.appendChild(tr);
+}
+
+function deleteRows() {
+    const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
+    const checked = rows.filter(r => r.querySelector('.row-check') && r.querySelector('.row-check').checked);
+    if (checked.length === 0) {
+        alert('No rows selected for deletion.');
+        return;
+    }
+    checked.forEach(r => r.remove());
+}
+
+function checkUniquePairs() {
+    const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
+    const pairs = {};
+    for (const r of rows) {
+        const tradeInput = r.querySelector('input[name^="rows-"][name$="-trade"]');
+        const laneInput = r.querySelector('input[name^="rows-"][name$="-lane"]');
+
+        // 💡 에러 방지를 위해 Optional Chaining(?.) 적용
+        const trade = tradeInput ? tradeInput.value : (r.querySelector('.trade-select')?.value || '');
+        const lane = laneInput ? laneInput.value : (r.querySelector('.lane-select')?.value || '');
+
+        if (!trade || !lane) continue;
+        const key = trade + '||' + lane;
+        if (pairs[key]) {
+            return {duplicateKey: key, existingRow: pairs[key], currentRow: r};
+        }
+        pairs[key] = r;
+    }
+    return null;
+}
+
+// 모든 행 데이터를 수집해서 서버에 전송
+async function generateCallingPorts() {
+    const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
+    const rowsData = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const tradeInput = r.querySelector('input[name^="rows-"][name$="-trade"]');
+        const laneInput = r.querySelector('input[name^="rows-"][name$="-lane"]');
+        const capacityInput = r.querySelector('input[name$="-capacity"]');
+        const qtyInput = r.querySelector('input[name$="-qty"]');
+
+        // 💡 에러 방지를 위해 Optional Chaining(?.) 적용
+        const trade = tradeInput ? tradeInput.value : (r.querySelector('.trade-select')?.value || '');
+        const lane = laneInput ? laneInput.value : (r.querySelector('.lane-select')?.value || '');
+
+        if (!trade || !lane) {
+            alert('모든 행의 Trade와 Lane을 입력해주세요.');
+            return;
+        }
+
+        // Essentials 포트 수집
+        const essentials = [];
+        for (let j = 0; j < 5; j++) {
+            const portInput = r.querySelector(`input[name$="-essentials-${j}"]`);
+            essentials.push(portInput ? portInput.value : '');
+        }
+
+        rowsData.push({
+            trade: trade,
+            lane: lane,
+            capacity: capacityInput ? capacityInput.value : '',
+            qty: qtyInput ? qtyInput.value : '',
+            essentials: essentials
+        });
+    }
+
+    if (rowsData.length === 0) {
+        alert('최소 하나의 행을 입력해주세요.');
+        return;
+    }
+
+    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    const simId = new URLSearchParams(window.location.search).get('sim_id') || '{{ simulation_number }}';
+
+    try {
+        const resp = await fetch('{% url "simulation:generate_calling_ports" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrf,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                simulation_id: simId,
+                rows: rowsData
+            })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            // 서버에서 리다이렉트 URL을 받으면 이동
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            }
+        } else {
+            const errorData = await resp.json();
+            alert('오류: ' + (errorData.error || 'Unknown error'));
+        }
+    } catch (err) {
+        console.error('Failed to generate calling ports', err);
+        alert('서버 오류가 발생했습니다.');
+    }
+}
+
+// 💡 Save 버튼 클릭: 모든 행 데이터를 서버에 저장
+async function savePortCreation() {
+    // Trade+Lane 중복 확인
+    const dup = checkUniquePairs();
+    if (dup) {
+        alert('Duplicate Trade+Lane pair detected. Please resolve before saving.');
+        return;
+    }
+
+    const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
+    const rowsData = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const tradeInput = r.querySelector('input[name^="rows-"][name$="-trade"]');
+        const laneInput = r.querySelector('input[name^="rows-"][name$="-lane"]');
+        const capacityInput = r.querySelector('input[name$="-capacity"]');
+        const qtyInput = r.querySelector('input[name$="-qty"]');
+
+        // 💡 JS 중단 방지를 위해 Optional Chaining(?.) 적용 (핵심 수정 사항)
+        const trade = tradeInput ? tradeInput.value : (r.querySelector('.trade-select')?.value || '');
+        const lane = laneInput ? laneInput.value : (r.querySelector('.lane-select')?.value || '');
+
+        if (!trade || !lane) {
+            alert('모든 행의 Trade와 Lane을 입력해주세요.');
+            return; // 저장 로직 즉시 중단
+        }
+
+        // payload 배열에 views.py가 기대하는 딕셔너리 구조 그대로 수집
+        rowsData.push({
+            trade: trade,
+            lane: lane,
+            capacity: capacityInput ? capacityInput.value : '',
+            qty: qtyInput ? qtyInput.value : ''
+        });
+    }
+
+    if (rowsData.length === 0) {
+        alert('최소 하나의 행을 입력해주세요.');
+        return;
+    }
+
+    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]')?.value;
+
+    // 💡 URL Parameter 우선 조회 후 Hidden input에서 참조하도록 보강
+    const simId = new URLSearchParams(window.location.search).get('sim_id') || document.getElementById('simId')?.value;
+
+    if (!simId) {
+        alert('Simulation ID를 찾을 수 없습니다. 정상적인 경로로 접근했는지 확인해 주세요.');
+        return;
+    }
+
+    // 버튼 비활성화 (이중 클릭 방지)
+    const btn = document.getElementById('saveBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+    btn.disabled = true;
+
+    try {
+        const resp = await fetch('{% url "simulation:save_port_creation" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrf,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                simulation_id: simId,
+                rows: rowsData // views.py에서는 data.get("rows", []) 로 수신
+            })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            alert('데이터가 성공적으로 저장되었습니다.');
+            // 시뮬레이션 리스트로 이동
+            window.location.href = '{% url "simulation:port_creation" %}?sim_id=' + simId;
+        } else {
+            // Django에서 HTTP 500에러 등 발생 시 텍스트 파싱을 방어하기 위한 추가 예외 처리
+            try {
+                const errorData = await resp.json();
+                alert('저장 실패: ' + (errorData.error || 'Unknown error'));
+            } catch(e) {
+                alert('서버 500 에러: 관리자에게 문의하세요.');
+            }
+        }
+    } catch (err) {
+        console.error('Save error:', err);
+        alert('서버 오류가 발생했습니다.');
+    } finally {
+        // 버튼 복구
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+}
+
+// Event handlers
+document.addEventListener('click', function(e) {
+    if (e.target && (e.target.id === 'insertRowBtn' || e.target.closest('#insertRowBtn'))) {
+        insertRow();
+    }
+    if (e.target && (e.target.id === 'deleteRowBtn' || e.target.closest('#deleteRowBtn'))) {
+        deleteRows();
+    }
+    if (e.target && (e.target.id === 'generateCallingPortsBtn' || e.target.closest('#generateCallingPortsBtn'))) {
+        generateCallingPorts();
+    }
+    if (e.target && (e.target.id === 'saveBtn' || e.target.closest('#saveBtn'))) {
+        e.preventDefault();
+        savePortCreation();
+    }
+});
+
+document.getElementById('selectAll').addEventListener('change', function(e) {
+    const checked = e.target.checked;
+    document.querySelectorAll('.row-check').forEach(cb => cb.checked = checked);
+});
+
+// Listen for changes on dynamically added selects to enforce uniqueness
+document.querySelector('#proformaTable').addEventListener('change', function(e) {
+    const target = e.target;
+    if (target.classList && (target.classList.contains('trade-select') || target.classList.contains('lane-select'))) {
+        const dup = checkUniquePairs();
+        if (dup) {
+            alert('Duplicate Trade+Lane pair detected. Please choose a different combination.');
+            target.value = '';
+        }
+    }
+});
+
+// Form submit validation (엔터키 등으로 인한 제출 방어)
+document.getElementById('portForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const dup = checkUniquePairs();
+    if (dup) {
+        alert('Duplicate Trade+Lane pairs exist. Please resolve before submitting.');
+    } else {
+        savePortCreation();
+    }
+    return false;
+});
+</script>
+
+{% endblock %}

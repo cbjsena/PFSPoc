@@ -1,0 +1,373 @@
+{% extends "base.html" %}
+
+{% block title %}Port Creation - Proforma Simulation Demo{% endblock %}
+
+{% block style %}
+<style>
+    /* 가로 스크롤 테이블을 위한 최소 너비 설정 */
+    .port-input {
+        min-width: 80px;
+        max-width: 100px;
+    }
+    .base-input {
+        min-width: 100px;
+    }
+    /* 테이블 헤더 스타일 조정 */
+    .table-group-header {
+        background-color: #f8f9fa !important;
+        font-weight: 700;
+        text-align: center;
+    }
+    
+    /* 가로 스크롤바 고정 */
+    .scroll-container-wrapper {
+        position: relative;
+    }
+    .scroll-container {
+        overflow-x: auto;
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+    .scroll-container-top {
+        width: 100%;
+        height: 12px;
+        background: transparent;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: -1px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .scroll-sync {
+        height: 12px;
+        width: 100%;
+        min-width: 2000px;
+    }
+</style>
+{% endblock %}
+
+{% block sidebar %}
+<div class="sidebar-heading d-flex align-items-center">
+    <i class="bi bi-list"></i>
+    <span class="ms-2">Simulation</span>
+</div>
+<nav class="nav flex-column">
+    {% for menu_item in sidebar_menu %}
+    <a class="nav-link {% if current_sidebar_menu == menu_item.key %}active{% endif %}"
+       href="{% url menu_item.url_name %}">
+        <i class="bi {{ menu_item.icon }} me-2"></i>{{ menu_item.name }}
+    </a>
+    {% endfor %}
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <h3 class="mb-4"><i class="bi bi-geo-alt"></i> Port Creation</h3>
+
+        <form method="post" id="portForm" class="needs-validation">
+            {% csrf_token %}
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h4 class="mb-0">
+                        <i class="bi bi-hash"></i> Simulation {{ simulation_number }}
+                    </h4>
+                </div>
+                <div>
+                    <button type="button" id="insertRowBtn" class="btn btn-sm btn-outline-primary me-2">
+                        <i class="bi bi-plus-lg"></i> Insert Row
+                    </button>
+                    <button type="button" id="deleteRowBtn" class="btn btn-sm btn-outline-danger me-2">
+                        <i class="bi bi-trash"></i> Delete Row
+                    </button>
+                    <button type="button" id="generateCallingPortsBtn" class="btn btn-sm btn-outline-success">
+                        <i class="bi bi-gear"></i> Calling Port Creation
+                    </button>
+                </div>
+            </div>
+
+            <datalist id="ports-list">
+                {% for mp in master_ports %}
+                <option value="{{ mp.port_code }}">{{ mp.port_name }}</option>
+                {% endfor %}
+            </datalist>
+
+            <!-- 고정 스크롤바 -->
+            <div class="scroll-container-top">
+                <div class="scroll-sync"></div>
+            </div>
+
+            <div class="scroll-container" style="border-top: none; border-radius: 0;">
+                <table class="table table-bordered mb-0" id="proformaTable" style="min-width: 2000px;">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width:40px;"><input type="checkbox" id="selectAll"></th>
+                            <th>Trade</th>
+                            <th>Lane</th>
+                            <th style="width:120px;">Capacity</th>
+                            <th style="width:120px;">Qty</th>
+                            <th colspan="5" class="text-center">Essentials Ports</th>
+                            <th colspan="10" class="text-center">Calling Ports</th>
+                        </tr>
+                        <tr>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th></th>
+                            <th>Port 1</th>
+                            <th>Port 2</th>
+                            <th>Port 3</th>
+                            <th>Port 4</th>
+                            <th>Port 5</th>
+                            <th>Calling 1</th>
+                            <th>Calling 2</th>
+                            <th>Calling 3</th>
+                            <th>Calling 4</th>
+                            <th>Calling 5</th>
+                            <th>Calling 6</th>
+                            <th>Calling 7</th>
+                            <th>Calling 8</th>
+                            <th>Calling 9</th>
+                            <th>Calling 10</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for p in proformas %}
+                        <tr class="data-row initial-row">
+                            <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
+
+                            <td class="align-middle">
+                                <div class="form-control-plaintext small">{{ p.trade.trade_code }}</div>
+                                <input type="hidden" name="rows-{{ forloop.counter0 }}-trade" value="{{ p.trade.trade_code }}">
+                            </td>
+
+                            <td class="align-middle">
+                                <div class="form-control-plaintext small">{{ p.lane.lane_code }}</div>
+                                <input type="hidden" name="rows-{{ forloop.counter0 }}-lane" value="{{ p.lane.lane_code }}">
+                            </td>
+
+                            <td>
+                                <input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-{{ forloop.counter0 }}-capacity" value="{{ p.capacity|default:'' }}">
+                            </td>
+                            <td>
+                                <input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-{{ forloop.counter0 }}-qty" value="{{ p.qty|default:'' }}">
+                            </td>
+
+                            <!-- Essentials: 5 Port columns -->
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-0" placeholder="Port 1"></td>
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-1" placeholder="Port 2"></td>
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-2" placeholder="Port 3"></td>
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-3" placeholder="Port 4"></td>
+                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-4" placeholder="Port 5"></td>
+
+                            <!-- Calling Ports: 10 columns -->
+                            <td class="calling-port-cell" data-index="0"></td>
+                            <td class="calling-port-cell" data-index="1"></td>
+                            <td class="calling-port-cell" data-index="2"></td>
+                            <td class="calling-port-cell" data-index="3"></td>
+                            <td class="calling-port-cell" data-index="4"></td>
+                            <td class="calling-port-cell" data-index="5"></td>
+                            <td class="calling-port-cell" data-index="6"></td>
+                            <td class="calling-port-cell" data-index="7"></td>
+                            <td class="calling-port-cell" data-index="8"></td>
+                            <td class="calling-port-cell" data-index="9"></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-play-circle"></i> Create & Run Simulation
+                </button>
+                <a href="{% url 'simulation:simulation_list' %}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Cancel
+                </a>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+// 스크롤 동기화
+const scrollContainerTop = document.querySelector('.scroll-container-top');
+const scrollContainer = document.querySelector('.scroll-container');
+
+scrollContainer.addEventListener('scroll', function() {
+    scrollContainerTop.scrollLeft = scrollContainer.scrollLeft;
+});
+
+scrollContainerTop.addEventListener('scroll', function() {
+    scrollContainer.scrollLeft = scrollContainerTop.scrollLeft;
+});
+
+function nextRowIndex() {
+    const rows = document.querySelectorAll('#proformaTable tbody tr');
+    return rows.length;
+}
+
+function insertRow() {
+    const tbody = document.querySelector('#proformaTable tbody');
+    const idx = nextRowIndex();
+
+    const trades = [
+        {% for t in trades %}
+        {code: '{{ t.trade_code }}', name: '{{ t.trade_name|escapejs }}' },
+        {% endfor %}
+    ];
+    const lanes = [
+        {% for l in lanes %}
+        {code: '{{ l.lane_code }}', name: '{{ l.lane_name|escapejs }}' },
+        {% endfor %}
+    ];
+
+    const tr = document.createElement('tr');
+    tr.classList.add('data-row');
+    tr.innerHTML = `
+        <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
+        <td>
+            <select class="form-select form-select-sm trade-select" name="rows-${idx}-trade" required>
+                <option value="">-- Select Trade --</option>
+                ${trades.map(t => `<option value="${t.code}">[${t.code}] ${t.name}</option>`).join('')}
+            </select>
+        </td>
+        <td>
+            <select class="form-select form-select-sm lane-select" name="rows-${idx}-lane" required>
+                <option value="">-- Select Lane --</option>
+                ${lanes.map(l => `<option value="${l.code}">[${l.code}] ${l.name}</option>`).join('')}
+            </select>
+        </td>
+        <td><input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-${idx}-capacity"></td>
+        <td><input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-${idx}-qty"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-0" placeholder="Port 1"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-1" placeholder="Port 2"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-2" placeholder="Port 3"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-3" placeholder="Port 4"></td>
+        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-4" placeholder="Port 5"></td>
+        ${Array.from({length:10}).map((_,i)=>`<td class="calling-port-cell" data-index="${i}"></td>`).join('')}
+    `;
+    tbody.appendChild(tr);
+}
+
+function deleteRows() {
+    const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
+    const checked = rows.filter(r => r.querySelector('.row-check') && r.querySelector('.row-check').checked);
+    if (checked.length === 0) {
+        alert('No rows selected for deletion.');
+        return;
+    }
+    checked.forEach(r => r.remove());
+}
+
+function checkUniquePairs() {
+    const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
+    const pairs = {};
+    for (const r of rows) {
+        // For initial rows trade/lane are in hidden inputs
+        const tradeInput = r.querySelector('input[name^="rows-"][name$="-trade"]');
+        const laneInput = r.querySelector('input[name^="rows-"][name$="-lane"]');
+        let trade = '';
+        let lane = '';
+        if (tradeInput) {
+            trade = tradeInput.value;
+        } else if (r.querySelector('.trade-select')) {
+            trade = r.querySelector('.trade-select').value || '';
+        }
+        if (laneInput) {
+            lane = laneInput.value;
+        } else if (r.querySelector('.lane-select')) {
+            lane = r.querySelector('.lane-select').value || '';
+        }
+        if (!trade || !lane) continue;
+        const key = trade + '||' + lane;
+        if (pairs[key]) {
+            return {duplicateKey: key, existingRow: pairs[key], currentRow: r};
+        }
+        pairs[key] = r;
+    }
+    return null;
+}
+
+async function generateCallingPortsForRow(row) {
+    const tradeInput = row.querySelector('input[name^="rows-"][name$="-trade"]');
+    const laneInput = row.querySelector('input[name^="rows-"][name$="-lane"]');
+    let trade = tradeInput ? tradeInput.value : (row.querySelector('.trade-select')?.value || '');
+    let lane = laneInput ? laneInput.value : (row.querySelector('.lane-select')?.value || '');
+    if (!trade || !lane) return;
+
+    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    const formData = new FormData();
+    formData.append('trade', trade);
+    formData.append('lane', lane);
+
+    try {
+        const resp = await fetch('{% url "simulation:generate_calling_ports" %}', {
+            method: 'POST',
+            headers: {'X-CSRFToken': csrf},
+            body: formData
+        });
+        if (!resp.ok) return;
+        const data = await resp.json();
+        const ports = data.ports || [];
+
+        const cells = row.querySelectorAll('.calling-port-cell');
+        for (let i = 0; i < cells.length; i++) {
+            cells[i].textContent = ports[i] ? ports[i].port_code : '';
+        }
+    } catch (err) {
+        console.error('Failed to generate calling ports', err);
+    }
+}
+
+// Event handlers
+document.addEventListener('click', function(e) {
+    if (e.target && (e.target.id === 'insertRowBtn' || e.target.closest('#insertRowBtn'))) {
+        insertRow();
+    }
+    if (e.target && (e.target.id === 'deleteRowBtn' || e.target.closest('#deleteRowBtn'))) {
+        deleteRows();
+    }
+    if (e.target && (e.target.id === 'generateCallingPortsBtn' || e.target.closest('#generateCallingPortsBtn'))) {
+        const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
+        const selected = rows.filter(r => r.querySelector('.row-check')?.checked);
+        const targetRows = selected.length ? selected : rows;
+        targetRows.forEach(r => generateCallingPortsForRow(r));
+    }
+});
+
+document.getElementById('selectAll').addEventListener('change', function(e) {
+    const checked = e.target.checked;
+    document.querySelectorAll('.row-check').forEach(cb => cb.checked = checked);
+});
+
+// Listen for changes on dynamically added selects to enforce uniqueness
+document.querySelector('#proformaTable').addEventListener('change', function(e) {
+    const target = e.target;
+    if (target.classList && (target.classList.contains('trade-select') || target.classList.contains('lane-select'))) {
+        const dup = checkUniquePairs();
+        if (dup) {
+            alert('Duplicate Trade+Lane pair detected. Please choose a different combination.');
+            target.value = '';
+        }
+    }
+});
+
+// Form submit validation
+document.getElementById('portForm').addEventListener('submit', function(e) {
+    const dup = checkUniquePairs();
+    if (dup) {
+        e.preventDefault();
+        alert('Duplicate Trade+Lane pairs exist. Please resolve before submitting.');
+        return false;
+    }
+});
+</script>
+
+{% endblock %}

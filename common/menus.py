@@ -69,9 +69,9 @@ SIMULATION_SIDEBAR_MENU = [
         "icon": "bi-list-ul",
     },
     {
-        "key": "simulation_creation",
-        "name": "Simulation Creation",
-        "url_name": "simulation:simulation_creation",
+        "key": "port_creation",
+        "name": "Port Creation",
+        "url_name": "simulation:port_creation",
         "icon": "bi-list-ul",
     },
     {

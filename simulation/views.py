@@ -8,7 +8,7 @@ from common.constants import SIMULATION_STATUS_SUCCESS
 from common.menus import SIMULATION_SIDEBAR_MENU
 from common.views import menu_placeholder
 from input.models import MasterLane, MasterTrade
-from simulation.models import SimulationProforma, SimulationRun
+from simulation.models import SimulationProforma, SimulationRun, SimulationProformaEssentialPort
 
 
 def generate_simulation_number():
@@ -78,7 +78,8 @@ def simulation_creation(request):
 
 
 def port_creation(request):
-    from input.models import DefaultCurrentProforma, MasterLane, MasterPort, MasterTrade
+    from input.models import (DefaultCurrentProforma,DefaultProformaEssentialPort,
+                              MasterLane, MasterPort, MasterTrade)
 
     # Simulation Number는 새로 생성하거나 GET 파라미터에서 받음
     sim_id = request.GET.get("sim_id")
@@ -107,20 +108,51 @@ def port_creation(request):
         return redirect("simulation:simulation_list")
 
     # 💡 핵심 변경 사항: 시뮬레이션에 저장된 데이터가 있는지 우선 확인
-    saved_proformas = SimulationProforma.objects.filter(simulation=sim).select_related(
-        "trade", "lane"
+    # Saved SimulationProforma가 있으면 그쪽을 사용하고, 없으면 DefaultCurrentProforma를 사용합니다.
+    from django.db.models import Prefetch
+
+    saved_proformas = (
+        SimulationProforma.objects.filter(simulation=sim)
+        .select_related("trade", "lane")
+        .prefetch_related(Prefetch("essential_ports", queryset=SimulationProformaEssentialPort.objects.select_related("port")))
     )
 
     if saved_proformas.exists():
-        # 이미 한 번이라도 저장된 시뮬레이션이면 저장된 내역을 불러옴
         proformas = saved_proformas
     else:
-        # 처음 생성된 시뮬레이션이라 데이터가 없으면 디폴트를 불러옴
-        proformas = DefaultCurrentProforma.objects.select_related("trade", "lane").all()
+        proformas = (
+            DefaultCurrentProforma.objects.select_related("trade", "lane").prefetch_related("essential_ports__port").all()
+        )
+
+    # Build rows list (each row contains proforma and up to 5 essential ports) to simplify template logic
+    rows = []
+    for p in proformas:
+        capacity = getattr(p, "capacity", "") or ""
+        qty = getattr(p, "qty", "") or ""
+        # collect essential port codes (may be empty)
+        essentials = []
+        for ep in getattr(p, "essential_ports").all():
+            try:
+                essentials.append(ep.port.port_code)
+            except Exception:
+                # fallback to string representation
+                essentials.append(str(ep.port))
+        # pad to 5 inputs
+        while len(essentials) < 5:
+            essentials.append("")
+        rows.append({
+            "proforma": p,
+            "trade": p.trade,
+            "lane": p.lane,
+            "capacity": capacity,
+            "qty": qty,
+            "essentials": essentials,
+        })
 
     trades = MasterTrade.objects.all().order_by("trade_name")
     lanes = MasterLane.objects.all().order_by("lane_name")
-    master_ports = list(MasterPort.objects.all().values("port_code", "port_name")[:100])
+    # Load all master port codes (used for datalist). Note: for large datasets consider switching to server-side autocomplete.
+    master_ports = list(MasterPort.objects.all().order_by('port_code').values_list('port_code', flat=True))
 
     return render(
         request,
@@ -130,7 +162,7 @@ def port_creation(request):
             "sidebar_menu": SIMULATION_SIDEBAR_MENU,
             "current_sidebar_menu": "port_creation",
             "simulation_number": sim.simulation_number,
-            "proformas": proformas,
+            "rows": rows,
             "trades": trades,
             "lanes": lanes,
             "master_ports": master_ports,
@@ -169,30 +201,53 @@ def save_port_creation(request):
         sim = SimulationRun.objects.get(id=sim_id)
 
         # 기존 데이터 삭제 (새로 저장)
-        from simulation.models import SimulationProforma
+        from simulation.models import SimulationProforma, SimulationProformaEssentialPort
+        from input.models import MasterPort as MP
+        from django.db import transaction
 
-        SimulationProforma.objects.filter(simulation=sim).delete()
+        # Use transaction to ensure atomicity between proforma and essential port inserts
+        with transaction.atomic():
+            # 이전 proformas (and their essential ports via cascade) 삭제
+            SimulationProforma.objects.filter(simulation=sim).delete()
 
-        # 새 행 데이터 저장
-        for row in rows:
-            trade_code = row.get("trade")
-            lane_code = row.get("lane")
-            capacity = row.get("capacity")
-            qty = row.get("qty")
+            # 새 행 데이터 저장
+            for row in rows:
+                trade_code = row.get("trade")
+                lane_code = row.get("lane")
+                capacity = row.get("capacity")
+                qty = row.get("qty")
+                essentials = row.get("essentials", [])
 
-            try:
-                trade = MasterTrade.objects.get(trade_code=trade_code)
-                lane = MasterLane.objects.get(lane_code=lane_code)
+                try:
+                    trade = MasterTrade.objects.get(trade_code=trade_code)
+                    lane = MasterLane.objects.get(lane_code=lane_code)
 
-                SimulationProforma.objects.create(
-                    simulation=sim,
-                    trade=trade,
-                    lane=lane,
-                    capacity=int(capacity) if capacity else None,
-                    qty=int(qty) if qty else None,
-                )
-            except (MasterTrade.DoesNotExist, MasterLane.DoesNotExist):
-                continue
+                    proforma = SimulationProforma.objects.create(
+                        simulation=sim,
+                        trade=trade,
+                        lane=lane,
+                        capacity=int(capacity) if capacity else None,
+                        qty=int(qty) if qty else None,
+                    )
+
+                    # Save essential ports (if any)
+                    for code in essentials:
+                        if not code:
+                            continue
+                        try:
+                            port = MP.objects.get(port_code=code)
+                            SimulationProformaEssentialPort.objects.create(
+                                simulation=sim,
+                                proforma=proforma,
+                                port=port,
+                            )
+                        except MP.DoesNotExist:
+                            # ignore unknown port codes
+                            continue
+
+                except (MasterTrade.DoesNotExist, MasterLane.DoesNotExist):
+                    # skip invalid rows
+                    continue
 
         return JsonResponse({"success": True, "message": "Data saved successfully"})
 

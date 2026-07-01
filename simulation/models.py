@@ -246,7 +246,13 @@ class SimulationProformaDetail(SimulationBaseModel):
         verbose_name="Port Code",
     )
     terminal = models.CharField(max_length=50, null=True, blank=True, verbose_name="Terminal")
-
+    calling_port_indicator = models.CharField(
+        max_length=2,
+        verbose_name="Port call order for each direction and port within the lane",
+    )
+    calling_port_seq = models.IntegerField(
+        verbose_name="Port call sequence within the lane"
+    )
     etb_day = models.CharField(max_length=10, null=True, blank=True, verbose_name="ETB Day")
     etb_time = models.CharField(max_length=20, null=True, blank=True, verbose_name="ETB Time")
     etd_day = models.CharField(max_length=10, null=True, blank=True, verbose_name="ETD Day")

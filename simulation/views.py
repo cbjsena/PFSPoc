@@ -171,9 +171,7 @@ def port_creation(request):
 
 
 def generate_calling_ports(request):
-    """AJAX endpoint: given trade and lane, return up to 10 calling ports.
-    Currently returns first 10 MasterPort entries as a stub for the server logic.
-    """
+
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=400)
 

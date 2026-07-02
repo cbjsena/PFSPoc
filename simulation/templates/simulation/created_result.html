@@ -1,49 +1,39 @@
 {% extends "base.html" %}
 
-{% block title %}Port Creation - Proforma Simulation Demo{% endblock %}
+{% block title %}Created Result - Proforma Simulation Demo{% endblock %}
 
 {% block style %}
 <style>
-    /* 가로 스크롤 테이블을 위한 최소 너비 설정 */
-    .port-input {
-        min-width: 80px;
-        max-width: 100px;
+    .pfs-table th, .pfs-table td {
+        white-space: nowrap;
+        font-size: 0.82rem;
+        padding: 0.3rem 0.5rem;
     }
-    .base-input {
-        min-width: 100px;
+    .pfs-table .schedule-cell {
+        background-color: #fff;
+        vertical-align: middle;
     }
-    /* 테이블 헤더 스타일 조정 */
-    .table-group-header {
-        background-color: #f8f9fa !important;
-        font-weight: 700;
-        text-align: center;
+    .pfs-table .label-cell {
+        background-color: #f8f9fa;
+        font-weight: 600;
+        color: #6c757d;
+        min-width: 70px;
     }
-    
-    /* 가로 스크롤바 고정 */
-    .scroll-container-wrapper {
-        position: relative;
+    .schedule-group {
+        border-top: 2px solid #0d6efd !important;
     }
-    .scroll-container {
-        overflow-x: auto;
-        border: 1px solid #dee2e6;
-        border-radius: 0.25rem;
+    .schedule-group:first-child {
+        border-top: none !important;
     }
-    .scroll-container-top {
-        width: 100%;
-        height: 12px;
-        background: transparent;
-        overflow-x: auto;
-        overflow-y: hidden;
-        border-bottom: 1px solid #dee2e6;
-        margin-bottom: -1px;
-        position: sticky;
-        top: 0;
-        z-index: 10;
+    .terminal-row td {
+        background-color: #f0f4ff;
     }
-    .scroll-sync {
-        height: 12px;
-        width: 100%;
-        min-width: 2000px;
+    .berth-row td {
+        background-color: #fffbf0;
+    }
+    .berth-row.duration-row td {
+        background-color: #f0fff4;
+        font-weight: 600;
     }
 </style>
 {% endblock %}
@@ -64,310 +54,176 @@
 {% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-lg-12">
-        <h3 class="mb-4"><i class="bi bi-geo-alt"></i> Port Creation</h3>
+<h3 class="mb-3"><i class="bi bi-check-circle"></i> Created Result</h3>
 
-        <form method="post" id="portForm" class="needs-validation">
-            {% csrf_token %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 class="mb-0">
+        <i class="bi bi-hash"></i> Simulation {{ simulation_number }}
+    </h4>
+</div>
 
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <div>
-                    <h4 class="mb-0">
-                        <i class="bi bi-hash"></i> Simulation {{ simulation_number }}
-                    </h4>
-                </div>
-                <div>
-                    <button type="button" id="insertRowBtn" class="btn btn-sm btn-outline-primary me-2">
-                        <i class="bi bi-plus-lg"></i> Insert Row
-                    </button>
-                    <button type="button" id="deleteRowBtn" class="btn btn-sm btn-outline-danger me-2">
-                        <i class="bi bi-trash"></i> Delete Row
-                    </button>
-                    <button type="button" id="generateCallingPortsBtn" class="btn btn-sm btn-outline-success">
-                        <i class="bi bi-gear"></i> Calling Port Creation
-                    </button>
-                </div>
-            </div>
-
-            <datalist id="ports-list">
-                {% for mp in master_ports %}
-                <option value="{{ mp.port_code }}">{{ mp.port_name }}</option>
-                {% endfor %}
-            </datalist>
-
-            <!-- 고정 스크롤바 -->
-            <div class="scroll-container-top">
-                <div class="scroll-sync"></div>
-            </div>
-
-            <div class="scroll-container" style="border-top: none; border-radius: 0;">
-                <table class="table table-bordered mb-0" id="proformaTable" style="min-width: 2000px;">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width:40px;"><input type="checkbox" id="selectAll"></th>
-                            <th>Trade</th>
-                            <th>Lane</th>
-                            <th style="width:120px;">Capacity</th>
-                            <th style="width:120px;">Qty</th>
-                            <th colspan="5" class="text-center">Essentials Ports</th>
-                            <th colspan="10" class="text-center">Calling Ports</th>
-                        </tr>
-                        <tr>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th></th>
-                            <th>Port 1</th>
-                            <th>Port 2</th>
-                            <th>Port 3</th>
-                            <th>Port 4</th>
-                            <th>Port 5</th>
-                            <th>Calling 1</th>
-                            <th>Calling 2</th>
-                            <th>Calling 3</th>
-                            <th>Calling 4</th>
-                            <th>Calling 5</th>
-                            <th>Calling 6</th>
-                            <th>Calling 7</th>
-                            <th>Calling 8</th>
-                            <th>Calling 9</th>
-                            <th>Calling 10</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for p in proformas %}
-                        <tr class="data-row initial-row">
-                            <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
-
-                            <td class="align-middle">
-                                <div class="form-control-plaintext small">{{ p.trade.trade_code }}</div>
-                                <input type="hidden" name="rows-{{ forloop.counter0 }}-trade" value="{{ p.trade.trade_code }}">
-                            </td>
-
-                            <td class="align-middle">
-                                <div class="form-control-plaintext small">{{ p.lane.lane_code }}</div>
-                                <input type="hidden" name="rows-{{ forloop.counter0 }}-lane" value="{{ p.lane.lane_code }}">
-                            </td>
-
-                            <td>
-                                <input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-{{ forloop.counter0 }}-capacity" value="{{ p.capacity|default:'' }}">
-                            </td>
-                            <td>
-                                <input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-{{ forloop.counter0 }}-qty" value="{{ p.qty|default:'' }}">
-                            </td>
-
-                            <!-- Essentials: 5 Port columns -->
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-0" placeholder="Port 1"></td>
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-1" placeholder="Port 2"></td>
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-2" placeholder="Port 3"></td>
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-3" placeholder="Port 4"></td>
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-4" placeholder="Port 5"></td>
-
-                            <!-- Calling Ports: 10 columns -->
-                            <td class="calling-port-cell" data-index="0"></td>
-                            <td class="calling-port-cell" data-index="1"></td>
-                            <td class="calling-port-cell" data-index="2"></td>
-                            <td class="calling-port-cell" data-index="3"></td>
-                            <td class="calling-port-cell" data-index="4"></td>
-                            <td class="calling-port-cell" data-index="5"></td>
-                            <td class="calling-port-cell" data-index="6"></td>
-                            <td class="calling-port-cell" data-index="7"></td>
-                            <td class="calling-port-cell" data-index="8"></td>
-                            <td class="calling-port-cell" data-index="9"></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="d-flex gap-2 mt-3">
-                <button type="submit" class="btn btn-primary">
-                    <i class="bi bi-play-circle"></i> Create & Run Simulation
-                </button>
-                <a href="{% url 'simulation:simulation_list' %}" class="btn btn-secondary">
-                    <i class="bi bi-arrow-left"></i> Cancel
-                </a>
-            </div>
-        </form>
-
+<!-- Display Options -->
+<div class="card shadow-sm mb-3">
+    <div class="card-body py-2 d-flex align-items-center gap-4">
+        <span class="fw-bold small text-muted me-2">Display Options:</span>
+        <div class="form-check form-check-inline mb-0">
+            <input class="form-check-input" type="checkbox" id="chkTerminal">
+            <label class="form-check-label fw-semibold" for="chkTerminal">
+                <i class="bi bi-building me-1"></i>Terminal
+            </label>
+        </div>
+        <div class="form-check form-check-inline mb-0">
+            <input class="form-check-input" type="checkbox" id="chkBerthWindow">
+            <label class="form-check-label fw-semibold" for="chkBerthWindow">
+                <i class="bi bi-clock me-1"></i>Berth Window
+            </label>
+        </div>
     </div>
 </div>
 
+<!-- Proforma Schedules table -->
+<div class="card shadow-sm">
+    <div class="table-responsive">
+        <table class="table table-bordered table-sm mb-0 align-middle pfs-table">
+            <thead class="table-dark">
+                <tr>
+                    <th class="text-center">Trade</th>
+                    <th class="text-center">Lane</th>
+                    <th class="text-center">Capacity</th>
+                    <th class="text-center">Qty</th>
+                    <th></th>
+                    {% if max_ports > 0 %}
+                    <th class="text-center" colspan="{{ max_ports }}">Calling Ports</th>
+                    {% else %}
+                    <th class="text-center" colspan="10">Calling Ports</th>
+                    {% endif %}
+                </tr>
+            </thead>
+            {% if loaded %}
+                {% for schedule in schedules %}
+                <tbody class="schedule-group">
+                    <!-- Port row (always visible) -->
+                    <tr class="port-row">
+                        <td class="schedule-cell text-center fw-bold" rowspan="1">{{ schedule.trade }}</td>
+                        <td class="schedule-cell text-center fw-bold" rowspan="1">{{ schedule.lane }}</td>
+                        <td class="schedule-cell text-end" rowspan="1">{{ schedule.capacity }}</td>
+                        <td class="schedule-cell text-end" rowspan="1">{{ schedule.qty }}</td>
+                        <td class="label-cell">Port</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center fw-bold">{{ port.port }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- Terminal row -->
+                    <tr class="terminal-row" style="display: none;">
+                        <td class="label-cell">Terminal</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.terminal }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- ETB Day row -->
+                    <tr class="berth-row" style="display: none;">
+                        <td class="label-cell">ETB Day</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.etb_day }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- ETB Time row -->
+                    <tr class="berth-row" style="display: none;">
+                        <td class="label-cell">ETB Time</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.etb_time_display }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- ETD Day row -->
+                    <tr class="berth-row" style="display: none;">
+                        <td class="label-cell">ETD Day</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.etd_day }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- ETD Time row -->
+                    <tr class="berth-row" style="display: none;">
+                        <td class="label-cell">ETD Time</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.etd_time_display }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+
+                    <!-- Duration row -->
+                    <tr class="berth-row duration-row" style="display: none;">
+                        <td class="label-cell">Duration</td>
+                        {% for port in schedule.ports %}
+                        <td class="text-center">{{ port.duration }}</td>
+                        {% endfor %}
+                        {% for _ in schedule.empty_cells %}<td></td>{% endfor %}
+                    </tr>
+                </tbody>
+                {% endfor %}
+            {% else %}
+                <tbody>
+                    <tr>
+                        <td colspan="15" class="text-center text-muted py-5">
+                            No data available.
+                        </td>
+                    </tr>
+                </tbody>
+            {% endif %}
+        </table>
+    </div>
+</div>
+
+<div class="d-flex justify-content-end gap-2 mt-3">
+    <a href="{% url 'simulation:pfs_creation' %}?sim_id={{ sim_id }}" class="btn btn-secondary">
+        <i class="bi bi-arrow-left"></i> Back to PFS Creation
+    </a>
+    <a href="{% url 'simulation:simulation_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-list"></i> Simulation List
+    </a>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-// 스크롤 동기화
-const scrollContainerTop = document.querySelector('.scroll-container-top');
-const scrollContainer = document.querySelector('.scroll-container');
+(function() {
+    const chkTerminal = document.getElementById('chkTerminal');
+    const chkBerthWindow = document.getElementById('chkBerthWindow');
 
-scrollContainer.addEventListener('scroll', function() {
-    scrollContainerTop.scrollLeft = scrollContainer.scrollLeft;
-});
+    if (!chkTerminal || !chkBerthWindow) return;
 
-scrollContainerTop.addEventListener('scroll', function() {
-    scrollContainer.scrollLeft = scrollContainerTop.scrollLeft;
-});
+    function updateDisplay() {
+        const showTerminal = chkTerminal.checked;
+        const showBerth = chkBerthWindow.checked;
 
-function nextRowIndex() {
-    const rows = document.querySelectorAll('#proformaTable tbody tr');
-    return rows.length;
-}
-
-function insertRow() {
-    const tbody = document.querySelector('#proformaTable tbody');
-    const idx = nextRowIndex();
-
-    const trades = [
-        {% for t in trades %}
-        {code: '{{ t.trade_code }}', name: '{{ t.trade_name|escapejs }}' },
-        {% endfor %}
-    ];
-    const lanes = [
-        {% for l in lanes %}
-        {code: '{{ l.lane_code }}', name: '{{ l.lane_name|escapejs }}' },
-        {% endfor %}
-    ];
-
-    const tr = document.createElement('tr');
-    tr.classList.add('data-row');
-    tr.innerHTML = `
-        <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
-        <td>
-            <select class="form-select form-select-sm trade-select" name="rows-${idx}-trade" required>
-                <option value="">-- Select Trade --</option>
-                ${trades.map(t => `<option value="${t.code}">[${t.code}] ${t.name}</option>`).join('')}
-            </select>
-        </td>
-        <td>
-            <select class="form-select form-select-sm lane-select" name="rows-${idx}-lane" required>
-                <option value="">-- Select Lane --</option>
-                ${lanes.map(l => `<option value="${l.code}">[${l.code}] ${l.name}</option>`).join('')}
-            </select>
-        </td>
-        <td><input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-${idx}-capacity"></td>
-        <td><input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-${idx}-qty"></td>
-        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-0" placeholder="Port 1"></td>
-        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-1" placeholder="Port 2"></td>
-        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-2" placeholder="Port 3"></td>
-        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-3" placeholder="Port 4"></td>
-        <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-4" placeholder="Port 5"></td>
-        ${Array.from({length:10}).map((_,i)=>`<td class="calling-port-cell" data-index="${i}"></td>`).join('')}
-    `;
-    tbody.appendChild(tr);
-}
-
-function deleteRows() {
-    const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
-    const checked = rows.filter(r => r.querySelector('.row-check') && r.querySelector('.row-check').checked);
-    if (checked.length === 0) {
-        alert('No rows selected for deletion.');
-        return;
-    }
-    checked.forEach(r => r.remove());
-}
-
-function checkUniquePairs() {
-    const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
-    const pairs = {};
-    for (const r of rows) {
-        // For initial rows trade/lane are in hidden inputs
-        const tradeInput = r.querySelector('input[name^="rows-"][name$="-trade"]');
-        const laneInput = r.querySelector('input[name^="rows-"][name$="-lane"]');
-        let trade = '';
-        let lane = '';
-        if (tradeInput) {
-            trade = tradeInput.value;
-        } else if (r.querySelector('.trade-select')) {
-            trade = r.querySelector('.trade-select').value || '';
-        }
-        if (laneInput) {
-            lane = laneInput.value;
-        } else if (r.querySelector('.lane-select')) {
-            lane = r.querySelector('.lane-select').value || '';
-        }
-        if (!trade || !lane) continue;
-        const key = trade + '||' + lane;
-        if (pairs[key]) {
-            return {duplicateKey: key, existingRow: pairs[key], currentRow: r};
-        }
-        pairs[key] = r;
-    }
-    return null;
-}
-
-async function generateCallingPortsForRow(row) {
-    const tradeInput = row.querySelector('input[name^="rows-"][name$="-trade"]');
-    const laneInput = row.querySelector('input[name^="rows-"][name$="-lane"]');
-    let trade = tradeInput ? tradeInput.value : (row.querySelector('.trade-select')?.value || '');
-    let lane = laneInput ? laneInput.value : (row.querySelector('.lane-select')?.value || '');
-    if (!trade || !lane) return;
-
-    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
-    const formData = new FormData();
-    formData.append('trade', trade);
-    formData.append('lane', lane);
-
-    try {
-        const resp = await fetch('{% url "simulation:generate_calling_ports" %}', {
-            method: 'POST',
-            headers: {'X-CSRFToken': csrf},
-            body: formData
+        document.querySelectorAll('.terminal-row').forEach(function(row) {
+            row.style.display = showTerminal ? '' : 'none';
         });
-        if (!resp.ok) return;
-        const data = await resp.json();
-        const ports = data.ports || [];
 
-        const cells = row.querySelectorAll('.calling-port-cell');
-        for (let i = 0; i < cells.length; i++) {
-            cells[i].textContent = ports[i] ? ports[i].port_code : '';
-        }
-    } catch (err) {
-        console.error('Failed to generate calling ports', err);
-    }
-}
+        document.querySelectorAll('.berth-row').forEach(function(row) {
+            row.style.display = showBerth ? '' : 'none';
+        });
 
-// Event handlers
-document.addEventListener('click', function(e) {
-    if (e.target && (e.target.id === 'insertRowBtn' || e.target.closest('#insertRowBtn'))) {
-        insertRow();
-    }
-    if (e.target && (e.target.id === 'deleteRowBtn' || e.target.closest('#deleteRowBtn'))) {
-        deleteRows();
-    }
-    if (e.target && (e.target.id === 'generateCallingPortsBtn' || e.target.closest('#generateCallingPortsBtn'))) {
-        const rows = Array.from(document.querySelectorAll('#proformaTable tbody tr'));
-        const selected = rows.filter(r => r.querySelector('.row-check')?.checked);
-        const targetRows = selected.length ? selected : rows;
-        targetRows.forEach(r => generateCallingPortsForRow(r));
-    }
-});
+        var rowspan = 1;
+        if (showTerminal) rowspan += 1;
+        if (showBerth) rowspan += 5;
 
-document.getElementById('selectAll').addEventListener('change', function(e) {
-    const checked = e.target.checked;
-    document.querySelectorAll('.row-check').forEach(cb => cb.checked = checked);
-});
-
-// Listen for changes on dynamically added selects to enforce uniqueness
-document.querySelector('#proformaTable').addEventListener('change', function(e) {
-    const target = e.target;
-    if (target.classList && (target.classList.contains('trade-select') || target.classList.contains('lane-select'))) {
-        const dup = checkUniquePairs();
-        if (dup) {
-            alert('Duplicate Trade+Lane pair detected. Please choose a different combination.');
-            target.value = '';
-        }
+        document.querySelectorAll('.schedule-cell').forEach(function(cell) {
+            cell.rowSpan = rowspan;
+        });
     }
-});
 
-// Form submit validation
-document.getElementById('portForm').addEventListener('submit', function(e) {
-    const dup = checkUniquePairs();
-    if (dup) {
-        e.preventDefault();
-        alert('Duplicate Trade+Lane pairs exist. Please resolve before submitting.');
-        return false;
-    }
-});
+    chkTerminal.addEventListener('change', updateDisplay);
+    chkBerthWindow.addEventListener('change', updateDisplay);
+})();
 </script>
-
 {% endblock %}

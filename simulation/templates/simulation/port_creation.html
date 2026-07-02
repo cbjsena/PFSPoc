@@ -4,29 +4,33 @@
 
 {% block style %}
 <style>
-    /* 가로 스크롤 테이블을 위한 최소 너비 설정 */
-    .port-input {
-        min-width: 80px;
-        max-width: 100px;
+    .pfs-table th, .pfs-table td {
+        white-space: nowrap;
+        font-size: 0.82rem;
+        padding: 0.3rem 0.5rem;
     }
-    .base-input {
-        min-width: 100px;
+    .pfs-table .schedule-cell {
+        background-color: #fff;
+        vertical-align: middle;
     }
-    /* 테이블 헤더 스타일 조정 */
-    .table-group-header {
-        background-color: #f8f9fa !important;
-        font-weight: 700;
-        text-align: center;
+    .pfs-table input.form-control-sm,
+    .pfs-table select.form-select-sm {
+        font-size: 0.82rem;
+        padding: 0.2rem 0.4rem;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        outline: none;
     }
-    
+    .pfs-table input.form-control-sm:focus,
+    .pfs-table select.form-select-sm:focus {
+        border-bottom: 2px solid #0d6efd;
+        border-radius: 0;
+    }
+
     /* 가로 스크롤바 고정 */
-    .scroll-container-wrapper {
-        position: relative;
-    }
     .scroll-container {
         overflow-x: auto;
-        border: 1px solid #dee2e6;
-        border-radius: 0.25rem;
     }
     .scroll-container-top {
         width: 100%;
@@ -100,50 +104,52 @@
                 <div class="scroll-sync"></div>
             </div>
 
-            <div class="scroll-container" style="border-top: none; border-radius: 0;">
-                <table class="table table-bordered mb-0" id="proformaTable" style="min-width: 900px;">
-                    <thead class="table-light">
-                        <tr>
-                            <th style="width:40px;"><input type="checkbox" id="selectAll"></th>
-                            <th>Trade</th>
-                            <th>Lane</th>
-                            <th style="width:120px;">Capacity</th>
-                            <th style="width:120px;">Qty</th>
-                            <th colspan="5" class="text-center">Essential Ports</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in rows %}
-                        <tr class="data-row initial-row">
-                            <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
+            <div class="card shadow-sm">
+                <div class="scroll-container">
+                    <table class="table table-bordered table-sm mb-0 align-middle pfs-table" id="proformaTable" style="min-width: 900px;">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-center" style="width:40px;"><input type="checkbox" id="selectAll"></th>
+                                <th class="text-center">Trade</th>
+                                <th class="text-center">Lane</th>
+                                <th class="text-center" style="width:120px;">Capacity</th>
+                                <th class="text-center" style="width:120px;">Qty</th>
+                                <th colspan="5" class="text-center">Essential Ports</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                            <tr class="data-row initial-row">
+                                <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
 
-                            <td class="align-middle">
-                                <div class="form-control-plaintext small">{{ row.trade.trade_code }}</div>
-                                <input type="hidden" name="rows-{{ forloop.counter0 }}-trade" value="{{ row.trade.trade_code }}">
-                            </td>
+                                <td class="schedule-cell text-center fw-bold">
+                                    {{ row.trade.trade_code }}
+                                    <input type="hidden" name="rows-{{ forloop.counter0 }}-trade" value="{{ row.trade.trade_code }}">
+                                </td>
 
-                            <td class="align-middle">
-                                <div class="form-control-plaintext small">{{ row.lane.lane_code }}</div>
-                                <input type="hidden" name="rows-{{ forloop.counter0 }}-lane" value="{{ row.lane.lane_code }}">
-                            </td>
+                                <td class="schedule-cell text-center fw-bold">
+                                    {{ row.lane.lane_code }}
+                                    <input type="hidden" name="rows-{{ forloop.counter0 }}-lane" value="{{ row.lane.lane_code }}">
+                                </td>
 
-                            <td>
-                                <input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-{{ forloop.counter0 }}-capacity" value="{{ row.capacity }}">
-                            </td>
-                            <td>
-                                <input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-{{ forloop.counter0 }}-qty" value="{{ row.qty }}">
-                            </td>
+                                <td class="schedule-cell text-end">
+                                    <input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-{{ forloop.counter0 }}-capacity" value="{{ row.capacity }}">
+                                </td>
+                                <td class="schedule-cell text-end">
+                                    <input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-{{ forloop.counter0 }}-qty" value="{{ row.qty }}">
+                                </td>
 
-                            <!-- Essentials: 5 Port columns -->
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-0" placeholder="Port 1" value="{{ row.essentials.0 }}"></td>
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-1" placeholder="Port 2" value="{{ row.essentials.1 }}"></td>
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-2" placeholder="Port 3" value="{{ row.essentials.2 }}"></td>
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-3" placeholder="Port 4" value="{{ row.essentials.3 }}"></td>
-                            <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-4" placeholder="Port 5" value="{{ row.essentials.4 }}"></td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                                <!-- Essentials: 5 Port columns -->
+                                <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-0" placeholder="Port 1" value="{{ row.essentials.0 }}"></td>
+                                <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-1" placeholder="Port 2" value="{{ row.essentials.1 }}"></td>
+                                <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-2" placeholder="Port 3" value="{{ row.essentials.2 }}"></td>
+                                <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-3" placeholder="Port 4" value="{{ row.essentials.3 }}"></td>
+                                <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-{{ forloop.counter0 }}-essentials-4" placeholder="Port 5" value="{{ row.essentials.4 }}"></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
 
             <div class="d-flex justify-content-end gap-2 mt-3">
@@ -199,20 +205,20 @@ function insertRow() {
     tr.classList.add('data-row');
     tr.innerHTML = `
         <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
-        <td>
+        <td class="schedule-cell text-center">
             <select class="form-select form-select-sm trade-select" name="rows-${idx}-trade" required>
                 <option value="">-- Select Trade --</option>
                 ${trades.map(t => `<option value="${t.code}">[${t.code}] ${t.name}</option>`).join('')}
             </select>
         </td>
-        <td>
+        <td class="schedule-cell text-center">
             <select class="form-select form-select-sm lane-select" name="rows-${idx}-lane" required>
                 <option value="">-- Select Lane --</option>
                 ${lanes.map(l => `<option value="${l.code}">[${l.code}] ${l.name}</option>`).join('')}
             </select>
         </td>
-        <td><input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-${idx}-capacity"></td>
-        <td><input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-${idx}-qty"></td>
+        <td class="schedule-cell text-end"><input type="number" min="0" class="form-control form-control-sm capacity-input" name="rows-${idx}-capacity"></td>
+        <td class="schedule-cell text-end"><input type="number" min="0" class="form-control form-control-sm qty-input" name="rows-${idx}-qty"></td>
         <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-0" placeholder="Port 1"></td>
         <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-1" placeholder="Port 2"></td>
         <td><input list="ports-list" type="text" class="form-control form-control-sm essentials-input" name="rows-${idx}-essentials-2" placeholder="Port 3"></td>

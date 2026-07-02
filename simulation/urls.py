@@ -17,6 +17,11 @@ urlpatterns = [
     path("port-creation/save/", views.save_port_creation, name="save_port_creation"),
     path("delete/<int:sim_id>/", views.delete_simulation, name="delete_simulation"),
     path("pfs-creation/", views.pfs_creation, name="pfs_creation"),
+    path(
+        "pfs-creation/generate-pfs-ports/",
+        views.generate_pfs_ports,
+        name="generate_pfs_ports",
+    ),
     path("created-result/", views.created_result, name="created_result"),
     path(
         "berth-windows-adjustment/", views.berth_windows_adjustment, name="berth_windows_adjustment"

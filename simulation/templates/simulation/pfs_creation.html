@@ -1,0 +1,304 @@
+{% extends "base.html" %}
+
+{% block title %}PFS Creation - Proforma Simulation Demo{% endblock %}
+
+{% block style %}
+<style>
+    .pfs-table th, .pfs-table td {
+        white-space: nowrap;
+        font-size: 0.82rem;
+        padding: 0.3rem 0.5rem;
+    }
+    .pfs-table .schedule-cell {
+        background-color: #fff;
+        vertical-align: middle;
+    }
+    .pfs-table input.form-control-sm {
+        font-size: 0.82rem;
+        padding: 0.2rem 0.4rem;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+        outline: none;
+    }
+    .pfs-table input.form-control-sm:focus {
+        border-bottom: 2px solid #0d6efd;
+        border-radius: 0;
+    }
+
+    .scroll-container {
+        overflow-x: auto;
+    }
+    .scroll-container-top {
+        width: 100%;
+        height: 12px;
+        background: transparent;
+        overflow-x: auto;
+        overflow-y: hidden;
+        border-bottom: 1px solid #dee2e6;
+        margin-bottom: -1px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .scroll-sync {
+        height: 12px;
+        width: 100%;
+        min-width: 2400px;
+    }
+</style>
+{% endblock %}
+
+{% block sidebar %}
+<div class="sidebar-heading d-flex align-items-center">
+    <i class="bi bi-list"></i>
+    <span class="ms-2">Simulation</span>
+</div>
+<nav class="nav flex-column">
+    {% for menu_item in sidebar_menu %}
+    <a class="nav-link {% if current_sidebar_menu == menu_item.key %}active{% endif %}"
+       href="{% url menu_item.url_name %}">
+        <i class="bi {{ menu_item.icon }} me-2"></i>{{ menu_item.name }}
+    </a>
+    {% endfor %}
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-12">
+        <h3 class="mb-4"><i class="bi bi-diagram-3"></i> PFS Creation</h3>
+
+        <form method="post" id="pfsForm" onsubmit="return false;">
+            {% csrf_token %}
+            <input type="hidden" id="simId" value="{{ sim_id }}">
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h4 class="mb-0">
+                        <i class="bi bi-hash"></i> Simulation {{ simulation_number }}
+                    </h4>
+                </div>
+            </div>
+
+            <datalist id="ports-list">
+                {% for mp in master_ports %}
+                <option value="{{ mp }}">{{ mp }}</option>
+                {% endfor %}
+            </datalist>
+
+            <!-- 상단 고정 스크롤바 -->
+            <div class="scroll-container-top">
+                <div class="scroll-sync"></div>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="scroll-container">
+                    <table class="table table-bordered table-sm mb-0 align-middle pfs-table" id="pfsTable" style="min-width: 2400px;">
+                        <thead class="table-dark">
+                            <tr>
+                                <th class="text-center" style="width:40px;"><input type="checkbox" id="selectAll"></th>
+                                <th class="text-center">Trade</th>
+                                <th class="text-center">Lane</th>
+                                <th class="text-center" style="width:120px;">Capacity</th>
+                                <th class="text-center" style="width:120px;">Qty</th>
+                                <th colspan="{{ max_calling_ports }}" class="text-center">Calling Ports</th>
+                            </tr>
+<!--                            <tr>-->
+<!--                                <th></th>-->
+<!--                                <th></th>-->
+<!--                                <th></th>-->
+<!--                                <th></th>-->
+<!--                                <th></th>-->
+<!--                                {% for i in calling_port_range %}-->
+<!--                                <th class="text-center">Port {{ forloop.counter }}</th>-->
+<!--                                {% endfor %}-->
+<!--                            </tr>-->
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                            <tr class="data-row">
+                                <td class="align-middle text-center"><input type="checkbox" class="row-check"></td>
+
+                                <td class="schedule-cell text-center fw-bold">
+                                    {{ row.trade.trade_code }}
+                                    <input type="hidden" name="rows-{{ forloop.counter0 }}-trade" value="{{ row.trade.trade_code }}">
+                                </td>
+
+                                <td class="schedule-cell text-center fw-bold">
+                                    {{ row.lane.lane_code }}
+                                    <input type="hidden" name="rows-{{ forloop.counter0 }}-lane" value="{{ row.lane.lane_code }}">
+                                </td>
+
+                                <td class="schedule-cell text-end">{{ row.capacity }}</td>
+                                <td class="schedule-cell text-end">{{ row.qty }}</td>
+
+                                <!-- Calling Ports: 20 columns -->
+                                {% for port in row.calling_ports %}
+                                <td>
+                                    <input list="ports-list" type="text"
+                                           class="form-control form-control-sm calling-port-input"
+                                           name="rows-{{ forloop.parentloop.counter0 }}-calling-{{ forloop.counter0 }}"
+                                           placeholder="Port {{ forloop.counter }}"
+                                           value="{{ port }}">
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-3">
+                <a href="{% url 'simulation:port_creation' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus-lg"></i> Calling Port Creation
+                </a>
+                <button type="button" id="generatePfsBtn" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-gear"></i> PFS Creation
+                </button>
+                <button type="button" id="saveBtn" class="btn btn-sm btn-primary">
+                    <i class="bi bi-save"></i> Save
+                </button>
+                <a href="{% url 'simulation:port_creation' %}?sim_id={{ sim_id }}" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i> Back to Port Creation
+                </a>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+// 스크롤 동기화
+const scrollContainerTop = document.querySelector('.scroll-container-top');
+const scrollContainer = document.querySelector('.scroll-container');
+
+scrollContainer.addEventListener('scroll', function() {
+    scrollContainerTop.scrollLeft = scrollContainer.scrollLeft;
+});
+
+scrollContainerTop.addEventListener('scroll', function() {
+    scrollContainer.scrollLeft = scrollContainerTop.scrollLeft;
+});
+
+// Select All 체크박스
+document.getElementById('selectAll').addEventListener('change', function(e) {
+    const checked = e.target.checked;
+    document.querySelectorAll('.row-check').forEach(cb => cb.checked = checked);
+});
+
+// PFS Creation 버튼 - 데이터를 수집하여 generate_pfs_ports로 전송
+document.getElementById('generatePfsBtn').addEventListener('click', async function() {
+    const rows = Array.from(document.querySelectorAll('#pfsTable tbody tr'));
+    const rowsData = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const tradeInput = r.querySelector('input[name$="-trade"]');
+        const laneInput = r.querySelector('input[name$="-lane"]');
+
+        const trade = tradeInput ? tradeInput.value : '';
+        const lane = laneInput ? laneInput.value : '';
+
+        const callingPorts = [];
+        for (let j = 0; j < {{ max_calling_ports }}; j++) {
+            const portInput = r.querySelector(`input[name$="-calling-${j}"]`);
+            callingPorts.push(portInput ? portInput.value : '');
+        }
+
+        rowsData.push({
+            trade: trade,
+            lane: lane,
+            calling_ports: callingPorts
+        });
+    }
+
+    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    const simId = document.getElementById('simId').value;
+
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
+    btn.disabled = true;
+
+    try {
+        const resp = await fetch('{% url "simulation:generate_pfs_ports" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': csrf,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                simulation_id: simId,
+                rows: rowsData
+            })
+        });
+
+        if (resp.ok) {
+            const data = await resp.json();
+            if (data.redirect_url) {
+                window.location.href = data.redirect_url;
+            }
+        } else {
+            const errorData = await resp.json();
+            alert('오류: ' + (errorData.error || 'Unknown error'));
+        }
+    } catch (err) {
+        console.error('Failed to generate PFS', err);
+        alert('서버 오류가 발생했습니다.');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+
+// Save 버튼
+document.getElementById('saveBtn').addEventListener('click', async function() {
+    const rows = Array.from(document.querySelectorAll('#pfsTable tbody tr'));
+    const rowsData = [];
+
+    for (let i = 0; i < rows.length; i++) {
+        const r = rows[i];
+        const tradeInput = r.querySelector('input[name$="-trade"]');
+        const laneInput = r.querySelector('input[name$="-lane"]');
+
+        const trade = tradeInput ? tradeInput.value : '';
+        const lane = laneInput ? laneInput.value : '';
+
+        // Calling ports 수집 (최대 20개)
+        const callingPorts = [];
+        for (let j = 0; j < {{ max_calling_ports }}; j++) {
+            const portInput = r.querySelector(`input[name$="-calling-${j}"]`);
+            callingPorts.push(portInput ? portInput.value : '');
+        }
+
+        rowsData.push({
+            trade: trade,
+            lane: lane,
+            calling_ports: callingPorts
+        });
+    }
+
+    const csrf = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+    const simId = document.getElementById('simId').value;
+
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+    btn.disabled = true;
+
+    try {
+        // TODO: PFS 저장 API 엔드포인트 연결
+        alert('PFS Creation 데이터 저장 기능은 추후 구현 예정입니다.');
+    } catch (err) {
+        console.error('Save error:', err);
+        alert('서버 오류가 발생했습니다.');
+    } finally {
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
+</script>
+
+{% endblock %}
